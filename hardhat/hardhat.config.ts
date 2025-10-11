@@ -6,7 +6,7 @@ dotenv.config;
 const config: HardhatUserConfig = {
   solidity: "0.8.28",
   networks: {
-    sepolia: {
+    "sepolia-testnet": {
       url: process.env.SEPOLIA_KEY,
       accounts: [process.env.PRIVATE_KEY as string],
     },
