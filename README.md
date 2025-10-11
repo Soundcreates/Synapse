@@ -54,7 +54,7 @@ To create a transparent, fair, and decentralized data marketplace that empowers 
 | **Backend**         | Go (Gin/Fiber), PostgreSQL, Redis, JWT   |
 | **Smart Contracts** | Solidity, Hardhat, OpenZeppelin, Polygon |
 | **Storage**         | Pinata, IPFS, CDN                        |
-| **Web3**            | Wagmi v2, RainbowKit, go-ethereum        |
+| **Web3**            | Ethers.js       
 | **Database**        | PostgreSQL with GORM ORM                 |
 
 ---
