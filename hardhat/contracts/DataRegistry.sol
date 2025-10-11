@@ -3,23 +3,22 @@
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
 import "./RoyaltyDistribution.sol";
 
 contract DataRegistry is Ownable, ReentrancyGuard, Pausable {
-    struct DataPool {
-        address creator;
-        string ipfsHash;
-        string metadataHash;
-        uint256 pricePerAccess;
-        uint256 totalContributors;
-        bool isActive;
-        mapping(address => uint256) contributorShares;
-        address[] contributors;
-    }
+struct DataPool {
+address creator;
+string ipfsHash;
+string metadataHash;
+uint256 pricePerAccess;
+uint256 totalContributors;
+bool isActive;
+mapping(address => uint256) contributorShares;
+address[] contributors;
+}
 
     RoyaltyDistribution public royaltyDistributor;
 
@@ -27,12 +26,13 @@ contract DataRegistry is Ownable, ReentrancyGuard, Pausable {
     mapping(address => uint256[]) public creatorPools;
     uint256 public nextPoolId;
 
+
     event DataPoolCreated(uint256 indexed poolId, address indexed creator, string ipfsHash);
     event DataPurchased(uint256 indexed poolId, address indexed buyer, uint256 amount);
     event ContributionAdded(uint256 indexed poolId, address indexed contributor, uint256 share);
     event ContributorAssigned(uint256 indexed poolId, address indexed contributor, uint256 totalContributors); // Fixed event name and types
 
-    constructor(address _royaltyDistribution) {
+    constructor(address payable _royaltyDistribution) Ownable(msg.sender) {
         royaltyDistributor = RoyaltyDistribution(_royaltyDistribution);
     }
 
@@ -59,7 +59,7 @@ contract DataRegistry is Ownable, ReentrancyGuard, Pausable {
         return poolId;
     }
 
-    function assignContributors(uint256 _poolId, address[] memory _contributorsList) external { 
+    function assignContributors(uint256 _poolId, address[] memory _contributorsList) external {
         DataPool storage pool = dataPools[_poolId];
         require(_contributorsList.length > 0, "No contributors are assigned, reverting");
         require(pool.isActive, "The data pool isn't active at this moment");
@@ -67,7 +67,7 @@ contract DataRegistry is Ownable, ReentrancyGuard, Pausable {
         for(uint256 i = 0; i < _contributorsList.length; i++){
             pool.totalContributors++;
             pool.contributors.push(_contributorsList[i]);
-            emit ContributorAssigned(_poolId, _contributorsList[i], pool.totalContributors); 
+            emit ContributorAssigned(_poolId, _contributorsList[i], pool.totalContributors);
         }
     }
 
@@ -111,4 +111,5 @@ contract DataRegistry is Ownable, ReentrancyGuard, Pausable {
     function getContributors(uint256 _poolId) external view returns(address[] memory) {
         return dataPools[_poolId].contributors;
     }
+
 }
