@@ -6,7 +6,7 @@ services:
     container_name: synapsedb
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=cr7#thegreat
+      - POSTGRES_PASSWORD=synapseDB
       - POSTGRES_DB=synapseDB
     volumes:
       - pgdata:/var/lib/postgresql/data

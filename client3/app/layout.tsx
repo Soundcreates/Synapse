@@ -10,6 +10,8 @@ import { SiteHeader } from "@/components/site-header"
 import { LedgerProvider } from "@/contexts/ledger-context"
 import { Suspense } from "react"
 import { PageTransition } from "@/components/page-transition"
+import { WalletProvider } from "./context/WalletContext"
+
 
 export const metadata: Metadata = {
   title: "v0 App",
@@ -25,18 +27,21 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-          <LedgerProvider>
-            <Suspense fallback={<div>Loading...</div>}>
-              <SiteHeader />
-              <main className="min-h-[calc(100vh-64px)]">
-                <PageTransition>{children}</PageTransition>
-              </main>
-              <Toaster />
-            </Suspense>
-          </LedgerProvider>
-        </ThemeProvider>
-        <Analytics />
+        <WalletProvider>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+            <LedgerProvider>
+              <Suspense fallback={<div>Loading...</div>}>
+                <SiteHeader />
+                <main className="min-h-[calc(100vh-64px)]">
+                  <PageTransition>{children}</PageTransition>
+                </main>
+                <Toaster />
+              </Suspense>
+            </LedgerProvider>
+          </ThemeProvider>
+          <Analytics />
+        </WalletProvider>
+
       </body>
     </html>
   )

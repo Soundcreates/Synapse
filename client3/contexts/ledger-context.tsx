@@ -6,6 +6,7 @@ type LedgerContextValue = {
   walletAddress: string | null
   connect: () => void
   disconnect: () => void
+  isClient: boolean
 }
 
 const LedgerContext = React.createContext<LedgerContextValue | undefined>(undefined)
@@ -17,16 +18,32 @@ function randomWallet(): string {
 
 export function LedgerProvider({ children }: { children: React.ReactNode }) {
   const [walletAddress, setWalletAddress] = React.useState<string | null>(null)
+  const [isClient, setIsClient] = React.useState(false)
+
+  React.useEffect(() => {
+    setIsClient(true)
+    // Restore wallet address from localStorage if it exists
+    const stored = localStorage.getItem("ledger-wallet")
+    if (stored) {
+      setWalletAddress(stored)
+    }
+  }, [])
 
   const connect = React.useCallback(() => {
-    setWalletAddress(randomWallet())
-  }, [])
+    if (!isClient) return
+    const newWallet = randomWallet()
+    setWalletAddress(newWallet)
+    localStorage.setItem("ledger-wallet", newWallet)
+  }, [isClient])
 
   const disconnect = React.useCallback(() => {
     setWalletAddress(null)
-  }, [])
+    if (isClient) {
+      localStorage.removeItem("ledger-wallet")
+    }
+  }, [isClient])
 
-  const value = React.useMemo(() => ({ walletAddress, connect, disconnect }), [walletAddress, connect, disconnect])
+  const value = React.useMemo(() => ({ walletAddress, connect, disconnect, isClient }), [walletAddress, connect, disconnect, isClient])
 
   return <LedgerContext.Provider value={value}>{children}</LedgerContext.Provider>
 }

@@ -3,7 +3,7 @@ package main
 import (
 	"synapse-server/internal/api/handlers"
 	"synapse-server/internal/api/routes"
-
+	"synapse-server/internal/config"
 	"github.com/gin-gonic/gin"
 )
 
@@ -25,7 +25,12 @@ func main() {
 		c.Next()
 	})
 
-	h := handlers.NewHandler()
+	db, err := config.ConnectDB()
+	if err != nil {
+		panic("Failed to connect to database")
+	}
+
+	h := handlers.NewHandler(db)
 
 	// Health check endpoint
 	r.GET("/health", func(c *gin.Context) {

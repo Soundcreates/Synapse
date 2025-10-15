@@ -5,9 +5,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { useLedger } from "@/contexts/ledger-context"
 
 import { getUserDashboard } from "@/utils/mock-api"
+import { useWallet } from "../context/WalletContext"
 
 export default function DashboardPage() {
-  const { walletAddress } = useLedger()
+  const { account: walletAddress } = useWallet();
   const { data, isLoading } = useSWR(walletAddress ? ["dashboard", walletAddress] : null, () =>
     getUserDashboard(walletAddress!),
   )

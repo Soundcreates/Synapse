@@ -21,7 +21,7 @@ async function main() {
     abi: syntk.interface.formatJson(),
   };
   writeFileSync(
-    "C:/Users/Shantanav Mukherjee/OneDrive/Desktop/backend or mern projects/Synapse/client/src/contractData/SynTK.json",
+    "C:/Users/Shantanav Mukherjee/OneDrive/Desktop/backend or mern projects/Synapse/client3/contractData/SynTK.json",
     JSON.stringify(synData, null, 2)
   );
   console.log(" SynTK deployed at:", tokenAddress);
@@ -38,7 +38,7 @@ async function main() {
     abi: royalty.interface.formatJson(),
   };
   writeFileSync(
-    "C:/Users/Shantanav Mukherjee/OneDrive/Desktop/backend or mern projects/Synapse/client/src/contractData/RoyaltyDistribution.json",
+    "C:/Users/Shantanav Mukherjee/OneDrive/Desktop/backend or mern projects/Synapse/client3/contractData/RoyaltyDistribution.json",
     JSON.stringify(royaltyData, null, 2)
   );
   console.log(" RoyaltyDistribution deployed at:", royaltyAddress);
@@ -53,7 +53,7 @@ async function main() {
     abi: dataRegistry.interface.formatJson(),
   };
   writeFileSync(
-    "C:/Users/Shantanav Mukherjee/OneDrive/Desktop/backend or mern projects/Synapse/client/src/contractData/DataRegistry.json",
+    "C:/Users/Shantanav Mukherjee/OneDrive/Desktop/backend or mern projects/Synapse/client3/contractData/DataRegistry.json",
     JSON.stringify(synData, null, 2)
   );
   console.log("DataRegistry deployed at:", dataRegistryAddress);

@@ -4,16 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"synapse-server/internal/config"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func connectDB() (*gorm.DB,error) {
-	cfg ,err := config.Load()
+func ConnectDB() (*gorm.DB,error) {
+	cfg ,err := Load()
 	if err !=nil {
-		log.Fatal("Error using config vars")
+		log.Fatal("Error using config vars:", err)
 	}
 	
 	db_host := cfg.DB_HOST
@@ -22,20 +21,24 @@ func connectDB() (*gorm.DB,error) {
 	db_password := cfg.DB_PASSWORD
 	db_port := cfg.DB_PORT
 
-	DbNotConnected := errors.New("Db not connected")
+	// Debug: Print connection details (without password)
+	log.Printf("Connecting to database: host=%s user=%s dbname=%s port=%s ", 
+		db_host, db_username, db_name, db_port)
+
+	DbNotConnected := errors.New("database not connected")
 
 	dsn := 	fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-db_host, db_username, db_name, db_password, db_port)
+		db_host, db_username, db_password, db_name, db_port)
 
 	db , err :=gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
 	if err != nil {
-		log.Fatal("Error Connecting to db")
+		log.Printf("Error Connecting to db: %v", err)
+		log.Printf("DSN (without password): host=%s user=%s dbname=%s port=%s", 
+			db_host, db_username, db_name, db_port)
 		return nil, DbNotConnected
 	}
-
-	return db,nil
-
 	
-
+	log.Println("Connected to database successfully")
+	return db,nil
 }

@@ -1,24 +1,41 @@
 "use client"
 
+import { useWallet } from "@/app/context/WalletContext"
 import { Button } from "@/components/ui/button"
-import { useLedger } from "@/contexts/ledger-context"
 
 function short(addr: string) {
   return addr.slice(0, 6) + "..." + addr.slice(-4)
 }
 
 export function WalletConnect() {
-  const { walletAddress, connect, disconnect } = useLedger()
+  const { account, loadAccount, disconnectWallet, isClient } = useWallet()
 
-  return walletAddress ? (
+  // Prevent hydration mismatch by not rendering until client-side
+  if (!isClient) {
+    return (
+      <Button variant="outline" disabled>
+        Loading...
+      </Button>
+    )
+  }
+
+  const handleConnect = async () => {
+    await loadAccount()
+  }
+
+  const handleDisconnect = () => {
+    disconnectWallet()
+  }
+
+  return account ? (
     <div className="flex items-center gap-2 animate-fade animation-delay-150">
-      <span className="rounded-md bg-secondary px-2 py-1 text-xs">{short(walletAddress)}</span>
-      <Button variant="outline" onClick={disconnect}>
+      <span className="rounded-md bg-secondary px-2 py-1 text-xs">{short(account)}</span>
+      <Button variant="outline" onClick={handleDisconnect}>
         Disconnect
       </Button>
     </div>
   ) : (
-    <Button className="animate-fade animation-delay-150" onClick={connect}>
+    <Button className="animate-fade animation-delay-150" onClick={handleConnect}>
       Connect Wallet
     </Button>
   )
