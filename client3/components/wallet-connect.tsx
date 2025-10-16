@@ -2,6 +2,7 @@
 
 import { useWallet } from "@/app/context/WalletContext"
 import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
 
 function short(addr: string) {
   return addr.slice(0, 6) + "..." + addr.slice(-4)
@@ -9,6 +10,7 @@ function short(addr: string) {
 
 export function WalletConnect() {
   const { account, loadAccount, disconnectWallet, isClient } = useWallet()
+  const { toast } = useToast();
 
   // Prevent hydration mismatch by not rendering until client-side
   if (!isClient) {
@@ -21,10 +23,20 @@ export function WalletConnect() {
 
   const handleConnect = async () => {
     await loadAccount()
+    toast({
+      title: "Success!",
+      description: "Wallet connected successfully.",
+      variant: "default",
+    })
   }
 
   const handleDisconnect = () => {
     disconnectWallet()
+    toast({
+      title: "Disconnected",
+      description: "Wallet disconnected successfully.",
+      variant: "destructive",
+    })
   }
 
   return account ? (

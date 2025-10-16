@@ -9,13 +9,13 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 animate-slide-down">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-3">
-          <Image
+          {/* <Image
             src="/public/placeholder-logo.png"
             alt="Synapse Ledger logo"
             width={28}
             height={28}
             className="rounded"
-          />
+          /> */}
           <span className="font-semibold">Synapse Ledger</span>
         </Link>
 

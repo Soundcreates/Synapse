@@ -13,6 +13,8 @@ import { PageTransition } from "@/components/page-transition"
 import { WalletProvider } from "./context/WalletContext"
 
 
+
+
 export const metadata: Metadata = {
   title: "v0 App",
   description: "Created with v0",
@@ -27,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+
         <WalletProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
             <LedgerProvider>
@@ -41,7 +44,6 @@ export default function RootLayout({
           </ThemeProvider>
           <Analytics />
         </WalletProvider>
-
       </body>
     </html>
   )

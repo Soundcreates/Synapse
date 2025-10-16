@@ -1,5 +1,6 @@
 "use client"
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 type WalletContextType = {
   account: string | null;
@@ -29,7 +30,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkCurrentConnection = async () => {
     const ethereum = (window as any).ethereum;
-    if (!ethereum) return;
+    if (!ethereum) 
 
     try {
       const accounts: string[] = await ethereum.request({ method: "eth_accounts" });
