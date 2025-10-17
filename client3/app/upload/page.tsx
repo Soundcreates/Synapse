@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { uploadToIPFS, createDataPool } from "@/utils/mock-api"
+import { uploadToIPFS, createDataPool } from "@/utils/IndexApi"
 import { useLedger } from "@/contexts/ledger-context"
 
 export default function UploadPage() {

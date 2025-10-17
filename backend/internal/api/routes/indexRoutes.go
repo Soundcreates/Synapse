@@ -26,6 +26,11 @@ func (i *IndexRoutes) SetupRoutes(r *gin.Engine, h *handlers.Handler) {
 	userRoutes := UserRoutes{}
 	userRoutes.SetupUserRoutes(user, h)
 	fmt.Println("User routes set up")
+	
+	// pinata routes
+	pintata := api.Group("/pinata")
+	pinataRoutes := PinataRoutes{}
+	pinataRoutes.SetupPinataRoutes(pintata, h)
 
 	
 

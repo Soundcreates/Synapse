@@ -4,7 +4,7 @@ import useSWR from "swr"
 import { Card, CardContent } from "@/components/ui/card"
 import { useLedger } from "@/contexts/ledger-context"
 
-import { getUserDashboard } from "@/utils/mock-api"
+import { getUserDashboard } from "@/utils/IndexApi"
 import { useWallet } from "../context/WalletContext"
 
 export default function DashboardPage() {

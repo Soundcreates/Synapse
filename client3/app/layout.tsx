@@ -11,6 +11,7 @@ import { LedgerProvider } from "@/contexts/ledger-context"
 import { Suspense } from "react"
 import { PageTransition } from "@/components/page-transition"
 import { WalletProvider } from "./context/WalletContext"
+import { DataRegistryContextProvider } from "./context/DataRegistryContext"
 
 
 
@@ -31,18 +32,21 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
 
         <WalletProvider>
-          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-            <LedgerProvider>
-              <Suspense fallback={<div>Loading...</div>}>
-                <SiteHeader />
-                <main className="min-h-[calc(100vh-64px)]">
-                  <PageTransition>{children}</PageTransition>
-                </main>
-                <Toaster />
-              </Suspense>
-            </LedgerProvider>
-          </ThemeProvider>
-          <Analytics />
+          <DataRegistryContextProvider>
+            <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+              <LedgerProvider>
+                <Suspense fallback={<div>Loading...</div>}>
+                  <SiteHeader />
+                  <main className="min-h-[calc(100vh-64px)]">
+                    <PageTransition>{children}</PageTransition>
+                  </main>
+                  <Toaster />
+                </Suspense>
+              </LedgerProvider>
+            </ThemeProvider>
+            <Analytics />
+          </DataRegistryContextProvider>
+
         </WalletProvider>
       </body>
     </html>

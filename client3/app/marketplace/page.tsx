@@ -4,7 +4,7 @@ import useSWR from "swr"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { getMarketplace, purchaseDataAccess } from "@/utils/mock-api"
+import { getMarketplace, purchaseDataAccess } from "@/utils/IndexApi"
 import { useLedger } from "@/contexts/ledger-context"
 
 const fetcher = async () => getMarketplace()
