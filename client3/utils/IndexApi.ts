@@ -17,8 +17,6 @@ type Purchase = {
   date: string;
 };
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 // In-memory stores (frontend-only simulation)
 const pools: DataPool[] = [
   {
@@ -44,12 +42,6 @@ const pools: DataPool[] = [
   },
 ];
 
-const purchasesByWallet = new Map<string, Purchase[]>();
-
-function id(prefix: string) {
-  return `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
 export async function uploadToIPFS(_file: File): Promise<{ cid: string }> {
   console.log("Uploading file to IPFS: ", _file);
 
@@ -64,58 +56,25 @@ export async function uploadToIPFS(_file: File): Promise<{ cid: string }> {
     toast.error("Failed to upload file to IPFS");
   }
   console.log("Uploading file, has been completed");
+  return { cid: "bafybeigdyrzt5tqz5..." };
 }
 
-export async function createDataPool(input: {
-  name: string;
-  price: number;
-  owner: string;
-  cid?: string;
-  description?: string;
-}) {
-  await sleep(700);
-  const newPool: DataPool = {
-    id: id("pool"),
-    name: input.name,
-    price: input.price,
-    owner: input.owner,
-    cid: input.cid,
-    description: input.description,
-  };
-  pools.unshift(newPool);
-  return newPool;
-}
+export async function fetchDocument(cid: string): Promise<string> {
+  console.log("Fetching file from IPFS with CID: ", cid);
 
-export async function getMarketplace(): Promise<DataPool[]> {
-  await sleep(400);
-  return pools;
-}
+  try {
+    const response = await fetchData.get(`/pinata/${cid}`);
+    if (response.status === 200) {
+      toast.success("File fetched from IPFS successfully");
+      if (!response.data.link || response.data.link === "")
+        toast.error("No link found for the given CID");
+      const fileUrl = response.data.link;
+      return fileUrl;
+    }
+  } catch (err) {
+    toast.error("Failed to fetch file from IPFS");
+    console.error("Error fetching file from IPFS:", err);
+  }
 
-export async function purchaseDataAccess(poolId: string, wallet: string) {
-  await sleep(500);
-  const purchase: Purchase = {
-    id: id("purchase"),
-    poolId,
-    wallet,
-    date: new Date().toISOString(),
-  };
-  const arr = purchasesByWallet.get(wallet) ?? [];
-  arr.unshift(purchase);
-  purchasesByWallet.set(wallet, arr);
-  return purchase;
-}
-
-export async function getUserDashboard(wallet: string): Promise<{
-  myPools: DataPool[];
-  purchases: (Purchase & { pool: DataPool | undefined })[];
-}> {
-  await sleep(400);
-  const myPools = pools.filter(
-    (p) => p.owner.toLowerCase() === wallet.toLowerCase()
-  );
-  const purchases = (purchasesByWallet.get(wallet) ?? []).map((p) => ({
-    ...p,
-    pool: pools.find((x) => x.id === p.poolId),
-  }));
-  return { myPools, purchases };
+  return "";
 }

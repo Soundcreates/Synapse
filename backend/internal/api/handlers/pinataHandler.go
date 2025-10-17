@@ -58,5 +58,5 @@ func(h *Handler) FetchFromPinata(c *gin.Context){
 	// Otherwise redirect to a public gateway
 	gateway := fmt.Sprintf("https://gateway.pinata.cloud/ipfs/%s", hash)
 	// optional: fetch and proxy
-	c.Redirect(302, gateway)
+	c.JSON(200, gin.H{"link":gateway})
 }
