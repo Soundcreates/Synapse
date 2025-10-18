@@ -16,7 +16,7 @@ export function SiteHeader() {
             height={28}
             className="rounded"
           /> */}
-          <span className="font-semibold">Synapse Ledger</span>
+          <span className="font-semibold">Synapse</span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">

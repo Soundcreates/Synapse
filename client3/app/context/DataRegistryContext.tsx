@@ -126,7 +126,7 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
       });
 
       const receipt = await tx.wait();
-
+      o
       // Extract poolId from event logs
       const event = receipt.logs.find((log: any) => {
         try {

@@ -5,17 +5,27 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { uploadToIPFS, createDataPool } from "@/utils/IndexApi"
+import { uploadToIPFS } from "@/utils/IndexApi"
 import { useLedger } from "@/contexts/ledger-context"
+import { useDataRegistry } from "../context/DataRegistryContext"
+import { useWallet } from "../context/WalletContext"
+
+//importing ethers
+import { ethers } from "ethers";
 
 export default function UploadPage() {
   const { toast } = useToast()
-  const { walletAddress } = useLedger()
+  const { account: walletAddress } = useWallet();
+  const { createDataPool } = useDataRegistry();
   const [file, setFile] = React.useState<File | null>(null)
   const [name, setName] = React.useState("")
   const [price, setPrice] = React.useState<number>(10)
   const [loading, setLoading] = React.useState(false)
 
+
+  //first we will send teh file to pianta
+  //grab its cid
+  //then create  the pool onchain
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!file) {
@@ -24,12 +34,31 @@ export default function UploadPage() {
     }
     setLoading(true)
     try {
-      const { cid } = await uploadToIPFS(file)
+      //uploading the actual file to ipfs
+      const { cid: dataCid } = await uploadToIPFS(file)
       const owner = walletAddress ?? "anonymous"
-      const pool = await createDataPool({ name: name || file.name, price: price || 0, owner, cid })
+
+      //creating the metadata object 
+      const metadata = {
+        name: name,
+        description: `Dataset: ${name}`,
+        price: price,
+        uploadedAt: new Date().toISOString(),
+        fileType: file.type,
+        owner: owner,
+        cid: dataCid,
+      }
+
+      const metadataBlob = new Blob([JSON.stringify(metadata)], { type: "application/json" });
+      const metadataFile = new File([metadataBlob], "metadata.json", { type: "application/json" });
+      const { cid: metadataHash } = await uploadToIPFS(metadataFile)
+
+      const formattedPrice = await ethers.parseUnits(price.toString(), 18);
+      //converting metadata to a blob and uploading
+      const pool = await createDataPool(dataCid, metadataHash, formattedPrice.toString())
       toast({
         title: "Pool created",
-        description: `Created ${pool.name} (${pool.id})${walletAddress ? "" : " • connect a wallet to claim ownership next time"}`,
+        description: `Created by ${name}, ${walletAddress ? "" : " • connect a wallet to claim ownership next time"}`,
       })
       setFile(null)
       setName("")

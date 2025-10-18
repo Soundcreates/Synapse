@@ -46,11 +46,19 @@ export async function uploadToIPFS(_file: File): Promise<{ cid: string }> {
   console.log("Uploading file to IPFS: ", _file);
 
   try {
-    const response = await fetchData.post("/upload", _file);
+    //creating formdata
+    const formData = new FormData();
+    formData.append("file", _file);
+
+    const response = await fetchData.post("/pinata/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     if (response.status === 200) {
       toast.success("File uploaded to IPFS successfully");
+      return { cid: response.data.cid };
     }
-    return { cid: response.data.cid };
   } catch (err) {
     console.error("Error uploading file to IPFS:", err);
     toast.error("Failed to upload file to IPFS");
