@@ -1,3 +1,5 @@
+
+
 import type React from "react"
 import type { Metadata } from "next"
 import { GeistSans } from "geist/font/sans"
@@ -12,8 +14,7 @@ import { Suspense } from "react"
 import { PageTransition } from "@/components/page-transition"
 import { WalletProvider } from "./context/WalletContext"
 import { DataRegistryContextProvider } from "./context/DataRegistryContext"
-
-
+import { AOSInit } from "@/components/aos-init"
 
 
 export const metadata: Metadata = {
@@ -35,6 +36,7 @@ export default function RootLayout({
           <DataRegistryContextProvider>
             <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
               <LedgerProvider>
+                <AOSInit />
                 <Suspense fallback={<div>Loading...</div>}>
                   <SiteHeader />
                   <main className="min-h-[calc(100vh-64px)]">
