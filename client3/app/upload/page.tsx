@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { uploadToIPFS } from "@/utils/IndexApi"
-import { useLedger } from "@/contexts/ledger-context"
 import { useDataRegistry } from "../context/DataRegistryContext"
 import { useWallet } from "../context/WalletContext"
 
@@ -29,13 +28,32 @@ export default function UploadPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!file) {
-      toast({ title: "Select a file", description: "Please choose a file to upload." })
+      toast({
+        title: "Select a file",
+        description: "Please choose a file to upload.",
+        variant: "destructive"
+      })
       return
     }
+
+    if (!name.trim()) {
+      toast({
+        title: "Dataset name required",
+        description: "Please provide a name for your dataset.",
+        variant: "destructive"
+      })
+      return
+    }
+
     setLoading(true)
     try {
       //uploading the actual file to ipfs
       const { cid: dataCid } = await uploadToIPFS(file)
+      toast({
+        title: "File uploaded to IPFS",
+        description: "Your file has been successfully uploaded to IPFS.",
+      })
+
       const owner = walletAddress ?? "anonymous"
 
       //creating the metadata object 
@@ -53,13 +71,12 @@ export default function UploadPage() {
       const metadataFile = new File([metadataBlob], "metadata.json", { type: "application/json" });
       const { cid: metadataHash } = await uploadToIPFS(metadataFile)
 
-      const formattedPrice = await ethers.parseUnits(price.toString(), 18);
       //converting metadata to a blob and uploading
-      const pool = await createDataPool(dataCid, metadataHash, formattedPrice.toString());
-      if (pool.success) {
+      const pool = await createDataPool(dataCid, metadataHash, price.toString());
+      if (pool && pool.success) {
         toast({
-          title: "Pool created",
-          description: `Created by ${name}, ${walletAddress ? "" : " • connect a wallet to claim ownership next time"}`,
+          title: "Pool created successfully!",
+          description: `Dataset "${name}" has been uploaded and pool created${walletAddress ? "" : " • connect a wallet to claim ownership next time"}`,
         })
       }
 
@@ -67,7 +84,12 @@ export default function UploadPage() {
       setName("")
       setPrice(10)
     } catch (err: any) {
-      toast({ title: "Upload failed", description: err?.message || "Something went wrong" })
+      console.error("Upload error:", err)
+      toast({
+        title: "Upload failed",
+        description: err?.message || "Something went wrong while uploading your dataset",
+        variant: "destructive"
+      })
     } finally {
       setLoading(false)
     }

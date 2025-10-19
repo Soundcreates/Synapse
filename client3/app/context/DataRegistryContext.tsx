@@ -28,7 +28,7 @@ type CreateDataPoolType = {
 
 type DataRegistryContextType = {
   // Main contract functions
-  createDataPool: (ipfsHash: string, metaDataHash: string, pricePerAccess: string) => Promise<CreateDataPoolType>;
+  createDataPool: (ipfsHash: string, metaDataHash: string, pricePerAccess: string) => Promise<CreateDataPoolType | null>;
   assignContributors: (poolId: number, contributors: string[]) => Promise<boolean>;
   purchaseDataAccess: (poolId: number) => Promise<boolean>;
 
@@ -109,10 +109,19 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
 
   // Create a new data pool
   const createDataPool = async (ipfsHash: string, metaDataHash: string, pricePerAccess: string): Promise<CreateDataPoolType | null> => {
+    if (!isClient) {
+      toast({
+        title: "Client Not Ready",
+        description: "Please wait for the application to load.",
+        variant: "destructive",
+      });
+      return null;
+    }
+
     if (!contract.contractInstance) {
       toast({
         title: "Contract Not Initialized",
-        description: "Please wait for the contract to initialize.",
+        description: "Please make sure MetaMask is connected and try again.",
         variant: "destructive",
       });
       return null;

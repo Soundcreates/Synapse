@@ -1,0 +1,4 @@
+{
+  "address": "0x4cF7053E3FDCFA70B72bbEb9A2388A2dA8494642",
+  "abi": "[{\"type\":\"constructor\",\"stateMutability\":\"undefined\",\"payable\":false,\"inputs\":[{\"type\":\"address\",\"name\":\"_owner\"}]},{\"type\":\"function\",\"name\":\"BuyTokens\",\"constant\":false,\"payable\":false,\"inputs\":[{\"type\":\"uint256\",\"name\":\"_amount\"},{\"type\":\"address\",\"name\":\"_receiver\"}],\"outputs\":[]},{\"type\":\"function\",\"name\":\"owner\",\"constant\":true,\"stateMutability\":\"view\",\"payable\":false,\"inputs\":[],\"outputs\":[{\"type\":\"address\",\"name\":\"\"}]},{\"type\":\"function\",\"name\":\"setToken\",\"constant\":false,\"payable\":false,\"inputs\":[{\"type\":\"address\",\"name\":\"_token\"}],\"outputs\":[]},{\"type\":\"function\",\"name\":\"tokens\",\"constant\":true,\"stateMutability\":\"view\",\"payable\":false,\"inputs\":[],\"outputs\":[{\"type\":\"address\",\"name\":\"\"}]}]"
+}

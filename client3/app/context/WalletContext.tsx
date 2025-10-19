@@ -1,6 +1,6 @@
 "use client"
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import { useToast } from "@/hooks/use-toast";
 
 type WalletContextType = {
   account: string | null;
@@ -14,6 +14,7 @@ export const WalletContext = createContext<WalletContextType | undefined>(undefi
 export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   const [account, setAccount] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const { toast } = useToast();
 
   // Prevent hydration mismatch by only setting state after client mount
   useEffect(() => {
@@ -30,7 +31,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkCurrentConnection = async () => {
     const ethereum = (window as any).ethereum;
-    if (!ethereum) 
+    if (!ethereum) return;
 
     try {
       const accounts: string[] = await ethereum.request({ method: "eth_accounts" });
@@ -54,6 +55,11 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     const ethereum = (window as any).ethereum;
     if (!ethereum) {
       console.error("MetaMask not found");
+      toast({
+        title: "MetaMask Required",
+        description: "Please install MetaMask to connect your wallet.",
+        variant: "destructive",
+      });
       return null;
     }
 

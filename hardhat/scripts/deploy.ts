@@ -34,7 +34,7 @@ async function main() {
   await royalty.waitForDeployment();
   const royaltyAddress = await royalty.getAddress();
   const royaltyData = {
-    address: tokenAddress,
+    address: royaltyAddress,
     abi: royalty.interface.formatJson(),
   };
   writeFileSync(
@@ -49,7 +49,7 @@ async function main() {
   await dataRegistry.waitForDeployment();
   const dataRegistryAddress = await dataRegistry.getAddress();
   const dataRegistryData = {
-    address: tokenAddress,
+    address: dataRegistryAddress,
     abi: dataRegistry.interface.formatJson(),
   };
   writeFileSync(
@@ -62,6 +62,28 @@ async function main() {
   const tx = await royalty.setDataRegistry(dataRegistryAddress);
   await tx.wait();
   console.log(" Linked DataRegistry in RoyaltyDistribution!");
+
+  //deploying TokenMarketplace contract
+  const tokenMkp = await ethers.getContractFactory("TokenMarketplace");
+  const TokenMKP = await tokenMkp.deploy(deployer);
+  await TokenMKP.waitForDeployment();
+  const mkpData = {
+    address: await TokenMKP.getAddress(),
+    abi: TokenMKP.interface.formatJson(),
+  };
+  writeFileSync(
+    "C:/Users/Shantanav Mukherjee/OneDrive/Desktop/backend or mern projects/Synapse/client3/contractData/TokenMarketplace.json",
+    JSON.stringify(mkpData, null, 2)
+  );
+  console.log(
+    "Token marketplace contract deployed at: ",
+    await TokenMKP.getAddress()
+  );
+
+  //linking tokenMKP with SyntK
+  const tkTx = await TokenMKP.setToken(tokenAddress);
+  await tkTx.wait();
+  console.log("Linked Syntk to tokenmarketplace");
 }
 
 main().catch((err) => {
