@@ -55,11 +55,14 @@ export default function UploadPage() {
 
       const formattedPrice = await ethers.parseUnits(price.toString(), 18);
       //converting metadata to a blob and uploading
-      const pool = await createDataPool(dataCid, metadataHash, formattedPrice.toString())
-      toast({
-        title: "Pool created",
-        description: `Created by ${name}, ${walletAddress ? "" : " • connect a wallet to claim ownership next time"}`,
-      })
+      const pool = await createDataPool(dataCid, metadataHash, formattedPrice.toString());
+      if (pool.success) {
+        toast({
+          title: "Pool created",
+          description: `Created by ${name}, ${walletAddress ? "" : " • connect a wallet to claim ownership next time"}`,
+        })
+      }
+
       setFile(null)
       setName("")
       setPrice(10)

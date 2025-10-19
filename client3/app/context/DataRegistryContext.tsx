@@ -18,12 +18,17 @@ type DataPool = {
 type Contract = {
   address: string,
   abi: any,
-  contractInstance: ethers.Contract | null,
+  contractInstance: ethers.Contract | null | undefined,
+}
+
+type CreateDataPoolType = {
+  success: boolean,
+  poolId: number | string | null,
 }
 
 type DataRegistryContextType = {
   // Main contract functions
-  createDataPool: (ipfsHash: string, metaDataHash: string, pricePerAccess: string) => Promise<number | null>;
+  createDataPool: (ipfsHash: string, metaDataHash: string, pricePerAccess: string) => Promise<CreateDataPoolType>;
   assignContributors: (poolId: number, contributors: string[]) => Promise<boolean>;
   purchaseDataAccess: (poolId: number) => Promise<boolean>;
 
@@ -103,7 +108,7 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
   }, [isClient, toast]);
 
   // Create a new data pool
-  const createDataPool = async (ipfsHash: string, metaDataHash: string, pricePerAccess: string): Promise<number | null> => {
+  const createDataPool = async (ipfsHash: string, metaDataHash: string, pricePerAccess: string): Promise<CreateDataPoolType | null> => {
     if (!contract.contractInstance) {
       toast({
         title: "Contract Not Initialized",
@@ -126,7 +131,7 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
       });
 
       const receipt = await tx.wait();
-      o
+
       // Extract poolId from event logs
       const event = receipt.logs.find((log: any) => {
         try {
@@ -137,14 +142,25 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
         }
       });
 
-      const poolId = event ? Number(contract.contractInstance!.interface.parseLog(event).args[0]) : null;
+      let poolId: number | null = null;
+      if (event && contract.contractInstance) {
+        try {
+          const parsedLog = contract.contractInstance.interface.parseLog(event);
+          poolId = parsedLog ? Number(parsedLog.args[0]) : null;
+        } catch (err) {
+          console.error("Error parsing event log:", err);
+        }
+      }
 
       toast({
         title: "Data Pool Created!",
         description: `Successfully created data pool with ID: ${poolId}`,
       });
 
-      return poolId;
+      return {
+        success: true,
+        poolId: poolId,
+      }
     } catch (err: any) {
       console.error("Error creating data pool:", err);
       toast({
@@ -369,7 +385,7 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
     getPaused,
 
     // Contract state
-    contract: contract.contractInstance,
+    contract: contract.contractInstance || null,
     isLoading,
     isClient,
   };

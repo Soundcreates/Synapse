@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"synapse-server/internal/services"
@@ -10,16 +11,30 @@ import (
 )
 
 func(h *Handler) UploadToPinata(c *gin.Context){
+	log.Println("Starting file upload to Pinata...")
+	
 	// single file
 	file, err := c.FormFile("file")
 	if err != nil {
-		c.JSON(400, gin.H{"error": "file is required"})
+		log.Printf("Error getting form file: %v", err)
+		c.JSON(400, gin.H{"error": "file is required", "details": err.Error()})
+		return
+	}
+
+	log.Printf("File received: %s, Size: %d bytes", file.Filename, file.Size)
+
+	// Check file size (optional - set reasonable limits)
+	const maxFileSize = 100 * 1024 * 1024 // 100MB
+	if file.Size > maxFileSize {
+		log.Printf("File too large: %d bytes", file.Size)
+		c.JSON(400, gin.H{"error": "file too large", "maxSize": "100MB"})
 		return
 	}
 
 	f, err := file.Open()
 	if err != nil {
-		c.JSON(500, gin.H{"error": "opening file"})
+		log.Printf("Error opening file: %v", err)
+		c.JSON(500, gin.H{"error": "error opening file", "details": err.Error()})
 		return
 	}
 	defer f.Close()
@@ -27,14 +42,19 @@ func(h *Handler) UploadToPinata(c *gin.Context){
 	// create a PinataService instance (stateless)
 	svc := services.NewPinataService()
 
+	log.Println("Uploading to Pinata...")
 	hash, err := svc.UploadFile(filepath.Base(file.Filename), f)
 	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		log.Printf("Error uploading to Pinata: %v", err)
+		c.JSON(500, gin.H{"error": "upload failed", "details": err.Error()})
 		return
 	}
 
-	c.JSON(200, gin.H{"result": hash})
+	log.Printf("Upload successful. Hash: %s", hash)
+	c.JSON(200, gin.H{"result": hash, "filename": file.Filename, "size": file.Size})
 }
+
+
 
 func(h *Handler) FetchFromPinata(c *gin.Context){
 	// fetch by ipfs hash param
