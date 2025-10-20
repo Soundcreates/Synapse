@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useContext, createContext, Children } from "react";
+import React, { useState, useEffect, useContext, createContext } from "react";
 import { ethers } from "ethers";
 import { useToast } from "@/hooks/use-toast";
 import TokenMarketPlace from "../../contractData/TokenMarketplace.json";
@@ -14,18 +14,21 @@ type Contract = {
 }
 
 type TokenMarketplaceContextType = {
-  BuyToken: (amount: number, receiverAddr: string) => Promise<void>,
-  BalanceOf: (receiverAddress: string) => Promise<BigInt | number>,
+  buyTokens: (amount: number, receiverAddr: string) => Promise<void>,
+  fetchBalance: (receiverAddress: string) => Promise<string>,
+  getContractTokenBalance: () => Promise<string>,
   loading: boolean,
-  tokenContract: ethers.Contract | null,
-  mkpContract: ethers.Contract | null,
-
+  tokenContract: Contract,
+  mkpContract: Contract,
+  balance: string,
+  tokenPrice: string,
 }
 
 export const TokenMarketPlaceContext = createContext<TokenMarketplaceContextType | undefined>(undefined);
 
 export const TokenMarketPlaceProvider = ({ children }: { children: React.ReactNode }) => {
-  const [balance, setBalance] = useState<BigInt | number>(0);
+  const [balance, setBalance] = useState<string>("0");
+  const [tokenPrice, setTokenPrice] = useState<string>("0.0001"); // 1e14 wei = 0.0001 ETH
   const [isClient, setIsClient] = useState<boolean>(false);
   //loading state as a helper (mostly aeshtetic and ux);
   const [loading, setLoading] = useState<boolean>(true);
@@ -130,33 +133,120 @@ export const TokenMarketPlaceProvider = ({ children }: { children: React.ReactNo
 
     initSynTKContract();
     initMarketplaceContract();
-  }, []);
+  }, [isClient]);
+
+  // Fetch token price from contract
+  useEffect(() => {
+    const fetchTokenPrice = async () => {
+      if (mkpContract.contractInstance) {
+        try {
+          const price = await mkpContract.contractInstance.TOKEN_PRICE();
+          setTokenPrice(ethers.formatEther(price));
+        } catch (err) {
+          console.error("Error fetching token price:", err);
+        }
+      }
+    };
+
+    fetchTokenPrice();
+  }, [mkpContract.contractInstance]);
 
 
   //implementing the context functions
 
-  const BuyToken: TokenMarketplaceContextType["BuyToken"] = async (amount, receiverAddr) => {
+  const buyTokens = async (amount: number, receiverAddr: string) => {
     //function to buy tokens from the marketplace
     if (!mkpContract.contractInstance) {
       throw new Error("Marketplace contract not initialized");
     }
-    let mkp = mkpContract.contractInstance;
+
     try {
-      const tx = await mkp.BuyTokens(ethers.parseEther(amount.toString()), receiverAddr);
+      setLoading(true);
+      const mkp = mkpContract.contractInstance;
+
+
+      const tokenAmount = ethers.parseUnits(amount.toString(), 18); // Assuming 18 decimals
+      const cost = ethers.parseEther((amount * parseFloat(tokenPrice)).toString());
+
+
+      const tx = await mkp.buyTokens(tokenAmount, receiverAddr, {
+        value: cost
+      });
+
       await tx.wait();
+
       toast({
         title: "Tokens Purchased",
-        description: `Successfully purchased ${amount} tokens.`,
-      })
-    } catch (err) {
-      console.error("Error at Buy token  function at mkpcontext file");
+        description: `Successfully purchased ${amount} tokens for ${ethers.formatEther(cost)} ETH.`,
+      });
+
+      // this to update the balance right after the user purchases, without having to reload 
+      await fetchBalance(receiverAddr);
+
+    } catch (err: any) {
+      console.error("Error buying tokens:", err);
+      toast({
+        title: "Purchase Failed",
+        description: err.message || "Failed to purchase tokens",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const fetchBalance = async (receiverAddress: string): Promise<string> => {
+    if (!tokenContract.contractInstance) {
+      throw new Error("Token contract not initialized");
     }
 
+    try {
+      const token = tokenContract.contractInstance;
+      // balanceOf is a view function, no need to wait for transaction
+      const balanceWei = await token.balanceOf(receiverAddress);
+      const balanceEther = ethers.formatEther(balanceWei);
+
+      setBalance(balanceEther);
+      return balanceEther;
+
+    } catch (err: any) {
+      console.error("Error fetching balance:", err);
+      toast({
+        title: "Error",
+        description: "Failed to fetch token balance",
+        variant: "destructive",
+      });
+      return "0";
+    }
+  }
+
+  // Get contract token balance (available tokens for sale)
+  const getContractTokenBalance = async (): Promise<string> => {
+    if (!tokenContract.contractInstance || !mkpContract.contractInstance) {
+      return "0";
+    }
+
+    try {
+      const balance = await tokenContract.contractInstance.balanceOf(mkpContract.address);
+      return ethers.formatEther(balance);
+    } catch (err) {
+      console.error("Error fetching contract balance:", err);
+      return "0";
+    }
   }
 
 
   return (
-    <TokenMarketPlaceContext.Provider value={{}}>
+    <TokenMarketPlaceContext.Provider value={{
+      buyTokens,
+      fetchBalance,
+      getContractTokenBalance,
+      balance,
+      loading,
+      mkpContract,
+      tokenContract,
+      tokenPrice
+    }}>
       {children}
     </TokenMarketPlaceContext.Provider>
   )
