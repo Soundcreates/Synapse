@@ -127,6 +127,9 @@ export const TokenMarketPlaceProvider = ({ children }: { children: React.ReactNo
         setLoading(false);
       }
     }
+
+    initSynTKContract();
+    initMarketplaceContract();
   }, []);
 
 
@@ -145,18 +148,21 @@ export const TokenMarketPlaceProvider = ({ children }: { children: React.ReactNo
         title: "Tokens Purchased",
         description: `Successfully purchased ${amount} tokens.`,
       })
+    } catch (err) {
+      console.error("Error at Buy token  function at mkpcontext file");
     }
-      })
-}
+
   }
 
-return (
-  <TokenMarketPlaceContext.Provider value={{}}>
-    {children}
-  </TokenMarketPlaceContext.Provider>
-)
 
+  return (
+    <TokenMarketPlaceContext.Provider value={{}}>
+      {children}
+    </TokenMarketPlaceContext.Provider>
+  )
 }
+
+
 
 export const useMkp = () => {
   return useContext(TokenMarketPlaceContext);
