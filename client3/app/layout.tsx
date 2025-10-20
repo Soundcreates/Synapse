@@ -9,12 +9,13 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { SiteHeader } from "@/components/site-header"
-import { LedgerProvider } from "@/contexts/ledger-context"
+
 import { Suspense } from "react"
 import { PageTransition } from "@/components/page-transition"
 import { WalletProvider } from "./context/WalletContext"
 import { DataRegistryContextProvider } from "./context/DataRegistryContext"
 import { AOSInit } from "@/components/aos-init"
+import { TokenMarketPlaceProvider } from "./context/TokenMarketplaceContext"
 
 
 export const metadata: Metadata = {
@@ -33,9 +34,11 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
 
         <WalletProvider>
-          <DataRegistryContextProvider>
-            <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-              <LedgerProvider>
+          <TokenMarketPlaceProvider>
+
+            <DataRegistryContextProvider>
+              <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+
                 <AOSInit />
                 <Suspense fallback={<div>Loading...</div>}>
                   <SiteHeader />
@@ -44,10 +47,12 @@ export default function RootLayout({
                   </main>
                   <Toaster />
                 </Suspense>
-              </LedgerProvider>
-            </ThemeProvider>
-            <Analytics />
-          </DataRegistryContextProvider>
+
+              </ThemeProvider>
+              <Analytics />
+            </DataRegistryContextProvider>
+          </TokenMarketPlaceProvider>
+
 
         </WalletProvider>
       </body>

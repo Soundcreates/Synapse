@@ -6,12 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { useLedger } from "@/contexts/ledger-context"
+
 import { ethers } from "ethers"
 
 // Import your contract ABIs
 import TokenMarketplaceABI from "@/contractData/TokenMarketplace.json"
 import SynTKABI from "@/contractData/SynTK.json"
+import { useWallet } from "../context/WalletContext"
 
 // Extend Window interface for ethereum
 declare global {
@@ -24,7 +25,7 @@ export default function BuyTokensPage() {
   const [amount, setAmount] = useState("")
   const [loading, setLoading] = useState(false)
   const [tokenBalance, setTokenBalance] = useState("0")
-  const { walletAddress } = useLedger()
+  const { account: walletAddress } = useWallet();
   const { toast } = useToast()
 
   // Contract addresses (you'll need to update these with your deployed addresses)
