@@ -342,7 +342,7 @@ export const TokenMarketPlaceProvider = ({ children }: { children: React.ReactNo
       const mkp = mkpContract.contractInstance;
 
 
-      const tokenAmount = ethers.parseUnits(amount.toString(), 18);
+      const tokenAmount = BigInt(amount);
       // 1 SynTK = 1e14 wei (0.0001 ETH), so cost = amount * 1e14 (as per my calculation) (nerd)
       const costInWei = BigInt(amount) * BigInt("100000000000000"); // 1e14 wei per token
       const cost = costInWei;

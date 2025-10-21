@@ -41,7 +41,7 @@ export default function BuyTokensPage() {
     }
 
     try {
-      const tokenAmount = ethers.parseUnits(amount || "0", 14);
+      const tokenAmount = amount;
       await buyTokens(tokenAmount, walletAddress);
     } catch (err) {
       console.error("Error buying tokens:", err);
@@ -109,7 +109,7 @@ export default function BuyTokensPage() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Estimated cost:</span>
-                <span className="font-medium">{amount ? `${parseFloat(amount) * 0.001} ETH` : "0 ETH"}</span>
+                <span className="font-medium">{amount ? `${parseFloat(amount) * 0.0001} ETH` : "0 ETH"}</span>
               </div>
             </div>
 
