@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 type WalletContextType = {
-  account: string | null;
+  account: string;
   loadAccount: () => Promise<string | null>;
   disconnectWallet: () => void;
   isClient: boolean;
@@ -12,7 +12,7 @@ type WalletContextType = {
 export const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
-  const [account, setAccount] = useState<string | null>(null);
+  const [account, setAccount] = useState<string>("");
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
 
@@ -41,7 +41,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem("user-account", currentAccount);
       } else {
         // No longer connected, clear stored account
-        setAccount(null);
+        setAccount("");
         localStorage.removeItem("user-account");
       }
     } catch (error) {
@@ -81,7 +81,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const disconnectWallet = () => {
-    setAccount(null);
+    setAccount("");
     if (isClient) {
       localStorage.removeItem("user-account");
     }

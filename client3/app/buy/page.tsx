@@ -13,6 +13,7 @@ import { ethers } from "ethers"
 import TokenMarketplaceABI from "@/contractData/TokenMarketplace.json"
 import SynTKABI from "@/contractData/SynTK.json"
 import { useWallet } from "../context/WalletContext"
+import { useMkp } from "../context/TokenMarketplaceContext"
 
 // Extend Window interface for ethereum
 declare global {
@@ -24,108 +25,38 @@ declare global {
 export default function BuyTokensPage() {
   const [amount, setAmount] = useState("")
   const [loading, setLoading] = useState(false)
-  const [tokenBalance, setTokenBalance] = useState("0")
+
   const { account: walletAddress } = useWallet();
+
   const { toast } = useToast()
 
-  // Contract addresses (you'll need to update these with your deployed addresses)
-  const TOKEN_MARKETPLACE_ADDRESS = TokenMarketplaceABI.address
-  const SYNTK_ADDRESS = SynTKABI.address
+  const { buyTokens, balance } = useMkp();
 
-  useEffect(() => {
-    if (walletAddress) {
-      fetchTokenBalance()
-    }
-  }, [walletAddress])
-
-  const fetchTokenBalance = async () => {
-    try {
-      if (!window.ethereum || !walletAddress) return
-
-      const provider = new ethers.BrowserProvider(window.ethereum)
-      const tokenContract = new ethers.Contract(SYNTK_ADDRESS, JSON.parse(SynTKABI.abi), provider)
-
-      const balance = await tokenContract.balanceOf(walletAddress)
-      setTokenBalance(ethers.formatEther(balance))
-    } catch (error) {
-      console.error("Error fetching token balance:", error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch token balance",
-        variant: "destructive"
-      })
-    }
-  }
 
   const handleBuyTokens = async () => {
+    setLoading(true);
     if (!walletAddress) {
-      toast({
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to buy tokens.",
-        variant: "destructive"
-      })
-      return
+      throw new Error("Wallet not connected");
+      setLoading(false);
     }
-
-    if (!amount || parseFloat(amount) <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid amount of tokens to buy.",
-        variant: "destructive"
-      })
-      return
-    }
-
-    setLoading(true)
 
     try {
-      if (!window.ethereum) {
-        throw new Error("No ethereum provider found")
-      }
-
-      const provider = new ethers.BrowserProvider(window.ethereum)
-      const signer = await provider.getSigner()
-
-      const marketplaceContract = new ethers.Contract(
-        TOKEN_MARKETPLACE_ADDRESS,
-        JSON.parse(TokenMarketplaceABI.abi),
-        signer
-      )
-
-      // Convert amount to wei (assuming 18 decimals)
-      const amountInWei = ethers.parseEther(amount)
-
-      // Call the BuyTokens function from your contract
-      const tx = await marketplaceContract.BuyTokens(amountInWei, walletAddress)
-
+      const tokenAmount = ethers.parseUnits(amount || "0", 14);
+      await buyTokens(tokenAmount, walletAddress);
+    } catch (err) {
+      console.error("Error buying tokens:", err);
       toast({
-        title: "Transaction Submitted",
-        description: "Your token purchase transaction has been submitted. Please wait for confirmation.",
-      })
-
-      // Wait for transaction confirmation
-      await tx.wait()
-
-      toast({
-        title: "Purchase Successful!",
-        description: `Successfully purchased ${amount} SynTK tokens!`,
-      })
-
-      // Refresh token balance
-      await fetchTokenBalance()
-      setAmount("")
-
-    } catch (error: any) {
-      console.error("Error buying tokens:", error)
-      toast({
-        title: "Purchase Failed",
-        description: error.message || "Failed to purchase tokens. Please try again.",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
+        title: "Transaction Failed",
+        description: "There was an error processing your transaction. Please try again.",
+        variant: "destructive",
+      });
     }
   }
+
+
+
+
+
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
@@ -144,7 +75,7 @@ export default function BuyTokensPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {tokenBalance} SynTK
+              {balance} SynTK
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               Current balance in your connected wallet
@@ -165,7 +96,7 @@ export default function BuyTokensPage() {
                 type="number"
                 placeholder="Enter amount (e.g., 100)"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => setAmount((e.target.value).toString())}
                 min="0"
                 step="0.1"
               />

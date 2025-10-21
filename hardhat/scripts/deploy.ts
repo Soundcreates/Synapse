@@ -24,7 +24,7 @@ async function main() {
     "C:/Users/Shantanav Mukherjee/OneDrive/Desktop/backend or mern projects/Synapse/client3/contractData/SynTK.json",
     JSON.stringify(synData, null, 2)
   );
-  console.log(" SynTK deployed at:", tokenAddress);
+  console.log("✅ SynTK deployed at:", tokenAddress);
 
   // 2️ Deploy RoyaltyDistribution
   const RoyaltyDistribution = await ethers.getContractFactory(
@@ -54,7 +54,7 @@ async function main() {
   };
   writeFileSync(
     "C:/Users/Shantanav Mukherjee/OneDrive/Desktop/backend or mern projects/Synapse/client3/contractData/DataRegistry.json",
-    JSON.stringify(synData, null, 2)
+    JSON.stringify(dataRegistryData, null, 2)
   );
   console.log("DataRegistry deployed at:", dataRegistryAddress);
 
@@ -65,7 +65,7 @@ async function main() {
 
   //deploying TokenMarketplace contract
   const tokenMkp = await ethers.getContractFactory("TokenMarketplace");
-  const TokenMKP = await tokenMkp.deploy(deployer);
+  const TokenMKP = await tokenMkp.deploy(deployer.address);
   await TokenMKP.waitForDeployment();
   const mkpData = {
     address: await TokenMKP.getAddress(),
@@ -83,7 +83,16 @@ async function main() {
   //linking tokenMKP with SyntK
   const tkTx = await TokenMKP.setToken(tokenAddress);
   await tkTx.wait();
-  console.log("Linked Syntk to tokenmarketplace");
+  console.log("✅ Linked SynTK to TokenMarketplace");
+
+  // Transfer some tokens to marketplace for testing
+  const transferAmount = ethers.parseUnits("5000", 18); // 5K tokens (half of total supply)
+  const transferTx = await syntk.transfer(
+    await TokenMKP.getAddress(),
+    transferAmount
+  );
+  await transferTx.wait();
+  console.log("✅ Transferred 5K SynTK tokens to marketplace for testing");
 }
 
 main().catch((err) => {

@@ -52,7 +52,7 @@ export const DataRegistryContext = createContext<DataRegistryContextType | undef
 
 export const DataRegistryContextProvider = ({ children }: { children: React.ReactNode }) => {
   const [contract, setContract] = useState<Contract>({
-    abi: DataRegistry.abi,
+    abi: JSON.parse(DataRegistry.abi),
     address: DataRegistry.address,
     contractInstance: null
   });
@@ -86,7 +86,7 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
 
         const contractInstance = new ethers.Contract(
           contract.address,
-          contract.abi,
+          JSON.parse(DataRegistry.abi),
           signer,
         );
 

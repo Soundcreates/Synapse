@@ -5,13 +5,16 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { getMarketplace, purchaseDataAccess } from "@/utils/IndexApi"
-import { useLedger } from "@/contexts/ledger-context"
+
+import { useWallet } from "../context/WalletContext"
+import { useMkp } from "../context/TokenMarketplaceContext"
 
 const fetcher = async () => getMarketplace()
 
 export default function MarketplacePage() {
   const { data, isLoading, mutate } = useSWR("marketplace", fetcher)
-  const { walletAddress } = useLedger()
+  const { account: walletAddress } = useWallet();
+
   const { toast } = useToast()
 
   async function onPurchase(poolId: string) {
