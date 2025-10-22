@@ -347,7 +347,7 @@ export const TokenMarketPlaceProvider = ({ children }: { children: React.ReactNo
       const costInWei = BigInt(amount) * BigInt("100000000000000"); // 1e14 wei per token
       const cost = costInWei;
 
-
+      console.log(`Buying ${amount} tokens for receiver ${receiverAddr} at cost ${ethers.formatEther(cost.toString())} ETH`);
       const tx = await mkp.buyTokens(tokenAmount, receiverAddr, {
         value: cost
       });

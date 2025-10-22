@@ -1,20 +1,23 @@
+import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import * as schema from "../models/DataSetModel";
 
-export const pool = new Pool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432,
-  database: process.env.DB_NAME,
+// Create connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
 });
 
-export const connectDB = async () => {
+// Test connection function
+export const testConnection = async () => {
   try {
-    await pool.connect();
-    await pool.query("SELECT NOW()");
-    console.log("Database connected fast!");
-  } catch (err) {
-    console.log("error is: ", err);
-    console.error("Error connecting to database");
+    const client = await pool.connect();
+    console.log("✅ Database connected successfully");
+    client.release();
+    return true;
+  } catch (error) {
+    console.error("❌ Database connection failed:", error);
+    return false;
   }
 };
+
+export const db = drizzle(pool, { schema });

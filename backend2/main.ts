@@ -3,8 +3,9 @@ import cors from "cors";
 import "dotenv/config";
 
 //my made imports
-import { connectDB } from "./config/connectDB";
+import { testConnection } from "./config/connectDB";
 import pinataRouter from "./routes/pinataRoutes";
+import datasetRouter from "./routes/datasetRoutes";
 
 const app = express();
 
@@ -51,17 +52,22 @@ app.use((req, res, next) => {
 
 // Routes
 app.use("/api/pinata", pinataRouter);
+app.use("/api", datasetRouter);
 
 // Health check route
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", message: "Server is running" });
 });
 
-connectDB();
-
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
-  console.log("DB connection initialized");
+
+  // Test database connection
+  const isConnected = await testConnection();
+  if (!isConnected) {
+    console.error("Failed to connect to database. Exiting...");
+    process.exit(1);
+  }
 });
