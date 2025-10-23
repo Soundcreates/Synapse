@@ -12,14 +12,6 @@ type DataPool = {
   owner_address: string;
 };
 
-type Purchase = {
-  id: string;
-  poolId: string;
-  wallet: string;
-  date: string;
-  pool?: DataPool;
-};
-
 // In-memory stores (frontend-only simulation)
 const pools: DataPool[] = [
   {
@@ -117,34 +109,58 @@ export async function fetchDocument(cid: string): Promise<string> {
   return "";
 }
 
-export async function getUserDashboard(
-  walletAddress: string
-): Promise<{ myPools: DataPool[]; purchases: Purchase[] }> {
+export async function getUserDashboard(walletAddress: string): Promise<{
+  myPools: DataPool[] | undefined | null;
+  purchasedPools: DataPool[] | undefined | null;
+}> {
   // Simulate API call
-  console.log("Fetching user dashboard for:", walletAddress);
+  console.log("Fetching dashboard for wallet: ", walletAddress);
 
-  // Mock data for user pools
-  const myPools = pools.filter(
-    (pool) => pool.owner_address.toLowerCase() === walletAddress.toLowerCase()
-  );
+  try {
+    const dataPoolResponseFromBackend = await fetchData.get(
+      `/datasets/owner/${walletAddress}`
+    );
 
-  // Mock data for purchases
-  const purchases: Purchase[] = [
-    {
-      id: "purchase_1",
-      poolId: "pool_demo_1",
-      wallet: walletAddress,
-      date: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    },
-    {
-      id: "purchase_2",
-      poolId: "pool_demo_2",
-      wallet: walletAddress,
-      date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-    },
-  ];
+    console.log("Backend response:", dataPoolResponseFromBackend.data);
 
-  return { myPools, purchases };
+    if (dataPoolResponseFromBackend.data.success) {
+      //grabbing the datasets uploaded by the owner address
+      const dataSetsUploaded =
+        dataPoolResponseFromBackend.data.dataSetsUploaded || [];
+      console.log("Datasets uploaded:", dataSetsUploaded);
+
+      //grabbing purchases made by the owner address
+      const dataSetsPurchased =
+        dataPoolResponseFromBackend.data.dataSetsPurchased || [];
+      console.log("Datasets purchased:", dataSetsPurchased);
+
+      const dataSetsByOwner: DataPool[] = dataSetsUploaded;
+      const dataSetsPurchasedByOwner: DataPool[] = dataSetsPurchased;
+      return {
+        myPools: dataSetsByOwner,
+        purchasedPools: dataSetsPurchasedByOwner,
+      };
+    }
+
+    // If success is false or response format is unexpected
+    console.warn(
+      "Unexpected response format:",
+      dataPoolResponseFromBackend.data
+    );
+    return {
+      myPools: [],
+      purchasedPools: [],
+    };
+  } catch (err: any) {
+    console.error("Error at getUserDashboard at indexapi.ts");
+    console.error("Error details:", err.response?.data || err.message || err);
+
+    // Return empty arrays instead of null to prevent UI errors
+    return {
+      myPools: [],
+      purchasedPools: [],
+    };
+  }
 }
 
 export async function getMarketplace(): Promise<DataPool[]> {
@@ -158,7 +174,7 @@ export async function getMarketplace(): Promise<DataPool[]> {
 export async function purchaseDataAccess(
   poolId: string,
   walletAddress: string
-): Promise<Purchase> {
+): Promise<{ id: string; poolId: string; wallet: string; date: string }> {
   // Simulate API call
   console.log(
     "Purchasing data access for pool:",
@@ -167,7 +183,7 @@ export async function purchaseDataAccess(
     walletAddress
   );
 
-  const purchase: Purchase = {
+  const purchase = {
     id: `purchase_${Date.now()}`,
     poolId,
     wallet: walletAddress,

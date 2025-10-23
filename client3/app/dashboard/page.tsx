@@ -2,7 +2,7 @@
 
 import useSWR from "swr"
 import { Card, CardContent } from "@/components/ui/card"
-import { useLedger } from "@/contexts/ledger-context"
+// import { useLedger } from "@/contexts/ledger-context"
 
 import { getUserDashboard } from "@/utils/IndexApi"
 import { useWallet } from "../context/WalletContext"
@@ -43,7 +43,7 @@ export default function DashboardPage() {
                       <div>
                         <div className="font-medium">{p.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          Price: {p.price} • CID: {p.cid ?? "n/a"}
+                          Price: {p.price} • IPFS: {p.ipfs_hash}
                         </div>
                       </div>
                       <div className="text-sm">ID: {p.id}</div>
@@ -57,15 +57,15 @@ export default function DashboardPage() {
           <section className="animate-fade-up animation-delay-100">
             <h2 className="mb-3 text-xl font-medium">Your Purchases</h2>
             <div className="grid gap-4">
-              {(data?.purchases ?? []).length === 0 && <p className="text-muted-foreground">No purchases found.</p>}
-              {(data?.purchases ?? []).map((p, i) => (
+              {(data?.purchasedPools ?? []).length === 0 && <p className="text-muted-foreground">No purchases found.</p>}
+              {(data?.purchasedPools ?? []).map((p, i) => (
                 <Card key={p.id} className="animate-fade-up" style={{ animationDelay: `${120 + i * 80}ms` }}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="font-medium">{p.pool?.name ?? p.poolId}</div>
+                        <div className="font-medium">{p.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          Purchased: {new Date(p.date).toLocaleString()}
+                          Owner: {p.owner_address} • Price: {p.price}
                         </div>
                       </div>
                       <div className="text-sm">ID: {p.id}</div>

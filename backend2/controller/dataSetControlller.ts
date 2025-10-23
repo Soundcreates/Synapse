@@ -130,12 +130,25 @@ export const getDataSetByIdOrOwner = async (
         .where(ilike(datasets.owner_address, ownerAddress))
         .orderBy(desc(datasets.created_at));
 
-      if (dataSetsByOwner.length > 0) {
-        return res.status(200).json({
-          success: true,
-          data: dataSetsByOwner,
-        });
-      }
+      //tracking and sending the datasets that the ownerAddress has purchased
+      const dataSetsPurchasedList = await db.select().from(datasets);
+      const dataSetsPurchasedByowner = dataSetsPurchasedList.filter(
+        (dataSet) => {
+          return (
+            Array.isArray(dataSet.purchasers) &&
+            dataSet.purchasers.includes(ownerAddress)
+          );
+        }
+      );
+      console.log("Datasets uploaded by owner: ", dataSetsByOwner);
+      console.log("datasets purchased by owners: ", dataSetsPurchasedByowner);
+
+      // Return data even if one of the arrays is empty
+      return res.status(200).json({
+        success: true,
+        dataSetsUploaded: dataSetsByOwner,
+        dataSetsPurchased: dataSetsPurchasedByowner,
+      });
     }
 
     //but if dataset found by id, here is the returning shi

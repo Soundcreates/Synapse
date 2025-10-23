@@ -12,8 +12,8 @@ const router = Router();
 // Dataset routes
 router.post("/datasets", createDataSet);
 router.get("/datasets", getDataSets);
-router.get("/datasets/:id", getDataSetByIdOrOwner);
 router.get("/datasets/owner/:ownerAddress", getDataSetByIdOrOwner);
+router.get("/datasets/:id", getDataSetByIdOrOwner);
 router.patch("/datasets/:id", updateDataSet);
 router.patch("/datasets/:dataSetId/purchase", purchaseDataSet);
 

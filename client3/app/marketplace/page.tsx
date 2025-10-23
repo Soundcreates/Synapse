@@ -50,7 +50,7 @@ export default function MarketplacePage() {
                   <h3 className="text-lg font-medium">{pool.name}</h3>
                   <p className="text-sm text-muted-foreground">{pool.description ?? "No description provided."}</p>
                   <p className="text-sm">
-                    Owner: <span className="text-muted-foreground">{pool.owner}</span>
+                    Owner: <span className="text-muted-foreground">{pool.owner_address}</span>
                   </p>
                 </div>
                 <div className="mt-auto flex items-center justify-between">
