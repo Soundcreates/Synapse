@@ -64,7 +64,17 @@ export default function UploadPage() {
     setLoading(true)
     try {
       //uploading the actual file to ipfs
-      const { cid: dataCid } = await uploadToIPFS(file)
+      console.log("Starting file upload to IPFS...");
+      const uploadResult = await uploadToIPFS(file);
+      console.log("Upload result:", uploadResult);
+      const dataCid = uploadResult.cid;
+
+      if (!dataCid) {
+        throw new Error("Failed to get CID from IPFS upload");
+      }
+
+      console.log("Data CID received:", dataCid);
+
       toast({
         title: "File uploaded to IPFS",
         description: "Your file has been successfully uploaded to IPFS.",
@@ -85,7 +95,14 @@ export default function UploadPage() {
 
       const metadataBlob = new Blob([JSON.stringify(metadata)], { type: "application/json" });
       const metadataFile = new File([metadataBlob], "metadata.json", { type: "application/json" });
-      const { cid: metadataHash } = await uploadToIPFS(metadataFile)
+      const metadataUploadResult = await uploadToIPFS(metadataFile);
+      const metadataHash = metadataUploadResult.cid;
+
+      if (!metadataHash) {
+        throw new Error("Failed to get metadata CID from IPFS upload");
+      }
+
+      console.log("Metadata CID received:", metadataHash);
 
       // 3. Create dataset in database FIRST (without blockchain ID)
       console.log("Received datacid is: ", dataCid);

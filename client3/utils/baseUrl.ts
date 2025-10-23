@@ -1,6 +1,9 @@
 import axios from "axios";
 
 export const fetchData = axios.create({
-  baseURL: "https://synapse-ki0x.onrender.com/api",
+  baseURL: "http://localhost:5000/api",
   withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });

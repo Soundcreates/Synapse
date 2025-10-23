@@ -11,11 +11,15 @@ export const pinataUpload = async (req: Request, res: Response) => {
     }
 
     const result = await upload(req.file as any);
+    console.log("Upload result:", result);
 
     res.status(200).json({
       success: true,
       message: "File uploaded successfully",
       data: result,
+      // Also return CID at root level for compatibility
+      cid: result.ipfsHash,
+      ipfsHash: result.ipfsHash,
     });
   } catch (error: any) {
     console.error("Upload error:", error);
@@ -39,11 +43,13 @@ export const pinataFetch = async (req: Request, res: Response) => {
     }
 
     const result = await fetchFile(cid);
+    const fileUrl = `${process.env.PINATA_GATEWAY}/ipfs/${cid}`;
 
     res.status(200).json({
       success: true,
       message: "File fetched successfully",
       data: result,
+      link: fileUrl, // Add the link field that the frontend expects
     });
   } catch (error: any) {
     console.error("Fetch error:", error);

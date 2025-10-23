@@ -25,23 +25,32 @@ const pools: DataPool[] = [
   {
     id: "pool_demo_1",
     name: "Global Weather Dataset",
-    price: 12,
-    owner: "0x1234567890abcdef1234567890abcdef12345678",
+    price: "12",
+    owner_address: "0x1234567890abcdef1234567890abcdef12345678",
     description: "Hourly observations across 1200 stations (2015-2024).",
+    ipfs_hash: "QmDemo1",
+    file_size: 1024000,
+    file_type: "application/json",
   },
   {
     id: "pool_demo_2",
     name: "Retail Transactions (Synthetic)",
-    price: 9,
-    owner: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+    price: "9",
+    owner_address: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
     description: "10M rows of anonymized SKU-level detail.",
+    ipfs_hash: "QmDemo2",
+    file_size: 2048000,
+    file_type: "text/csv",
   },
   {
     id: "pool_demo_3",
     name: "Mobility Patterns EU",
-    price: 15,
-    owner: "0x9999999999999999999999999999999999999999",
+    price: "15",
+    owner_address: "0x9999999999999999999999999999999999999999",
     description: "Aggregated device movement trends (2020-2023).",
+    ipfs_hash: "QmDemo3",
+    file_size: 3072000,
+    file_type: "application/json",
   },
 ];
 
@@ -60,9 +69,17 @@ export async function uploadToIPFS(_file: File): Promise<{ cid: string }> {
     });
     if (response.status === 200) {
       console.log("File uploaded to IPFS successfully");
+      console.log("Response data:", response.data);
       toast.success("File uploaded to IPFS successfully");
 
-      return { cid: response.data.cid };
+      // The backend returns ipfsHash, not cid
+      const cid = response.data.data?.ipfsHash || response.data.ipfsHash;
+      if (!cid) {
+        console.error("No CID received from backend:", response.data);
+        throw new Error("No CID received from IPFS upload");
+      }
+
+      return { cid };
     } else {
       console.error("Upload failed with status:", response.status);
       throw new Error("Failed to upload file to IPFS");
@@ -80,11 +97,17 @@ export async function fetchDocument(cid: string): Promise<string> {
     const response = await fetchData.get(`/pinata/${cid}`);
     if (response.status === 200) {
       console.log("File fetched from IPFS successfully");
-      if (!response.data.link || response.data.link === "") {
+      console.log("Fetch response:", response.data);
+
+      const fileUrl =
+        response.data.link ||
+        response.data.data?.link ||
+        `${process.env.PINATA_GATEWAY}/ipfs/${cid}`;
+
+      if (!fileUrl || fileUrl === "") {
         console.error("No link found for the given CID");
         return "";
       }
-      const fileUrl = response.data.link;
       return fileUrl;
     }
   } catch (err) {
@@ -102,7 +125,7 @@ export async function getUserDashboard(
 
   // Mock data for user pools
   const myPools = pools.filter(
-    (pool) => pool.owner.toLowerCase() === walletAddress.toLowerCase()
+    (pool) => pool.owner_address.toLowerCase() === walletAddress.toLowerCase()
   );
 
   // Mock data for purchases
