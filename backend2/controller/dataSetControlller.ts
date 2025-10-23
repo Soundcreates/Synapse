@@ -54,6 +54,7 @@ export const createDataSet = async (
         name: input.name,
         description: input.description,
         ipfs_hash: input.ipfs_hash,
+        tx_hash: input.tx_hash || null, // Handle undefined tx_hash
         file_size: input.file_size,
         file_type: input.file_type,
         owner_address: input.owner_address,

@@ -24,6 +24,7 @@ type Contract = {
 type CreateDataPoolType = {
   success: boolean,
   poolId: number | string | null,
+  tx_hash: string,
 }
 
 type DataRegistryContextType = {
@@ -139,7 +140,11 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
         description: "Creating data pool... Please wait for confirmation.",
       });
 
+      console.log("Tx hash is: ", tx.hash);
+      const tx_hash = tx.hash;
       const receipt = await tx.wait();
+
+
 
       // Extract poolId from event logs
       const event = receipt.logs.find((log: any) => {
@@ -169,6 +174,7 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
       return {
         success: true,
         poolId: poolId,
+        tx_hash: tx_hash,
       }
     } catch (err: any) {
       console.error("Error creating data pool:", err);

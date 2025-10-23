@@ -134,7 +134,8 @@ export default function UploadPage() {
       if (pool && pool.success && pool.poolId) {
         // 5. Update database record with blockchain pool ID
         const updateResponse = await fetchData.patch(`/datasets/${databaseId}`, {
-          blockchain_pool_id: pool.poolId
+          blockchain_pool_id: pool.poolId,
+          tx_hash: pool.tx_hash
         });
 
         if (updateResponse && updateResponse.status === 200) {

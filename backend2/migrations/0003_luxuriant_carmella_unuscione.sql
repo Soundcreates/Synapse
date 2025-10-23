@@ -1,0 +1,1 @@
+ALTER TABLE "datasets" ADD COLUMN "tx_hash" varchar(66);
