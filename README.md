@@ -1,10 +1,11 @@
-"# Synapse Ledger 🧬
+[![wakatime](https://wakatime.com/badge/github/Soundcreates/Synapse.svg)](https://wakatime.com/badge/github/Soundcreates/Synapse)
+
+
 
 **Decentralized Data Marketplace for Ethical AI Training**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Go](https://img.shields.io/badge/Go-00ADD8?logo=go&logoColor=white)](https://golang.org/)
 [![Solidity](https://img.shields.io/badge/Solidity-363636?logo=solidity&logoColor=white)](https://soliditylang.org/)
 [![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)](https://reactjs.org/)
 
