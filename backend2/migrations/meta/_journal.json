@@ -8,6 +8,20 @@
       "when": 1761132756472,
       "tag": "0000_smart_nightcrawler",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1761166633401,
+      "tag": "0001_cool_gladiator",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1761217127673,
+      "tag": "0002_tricky_lorna_dane",
+      "breakpoints": true
     }
   ]
 }

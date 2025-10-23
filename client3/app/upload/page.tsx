@@ -11,6 +11,19 @@ import { useWallet } from "../context/WalletContext"
 
 //importing ethers
 import { ethers } from "ethers";
+import { fetchData } from "@/utils/baseUrl"
+
+
+type dataSetBackendPayload = {
+  name: string,
+  blockchain_pool_id: string | number | null | undefined,
+  description?: string,
+  ipfs_hash: string,
+  file_size: number,
+  file_type: string,
+  owner_address: string,
+  price: number
+}
 
 export default function UploadPage() {
   const { toast } = useToast()
@@ -20,6 +33,9 @@ export default function UploadPage() {
   const [name, setName] = React.useState("")
   const [price, setPrice] = React.useState<number>(10)
   const [loading, setLoading] = React.useState(false)
+
+  //grabbing users wallet address to send to backend
+  const { account } = useWallet();
 
 
   //first we will send teh file to pianta
@@ -71,12 +87,53 @@ export default function UploadPage() {
       const metadataFile = new File([metadataBlob], "metadata.json", { type: "application/json" });
       const { cid: metadataHash } = await uploadToIPFS(metadataFile)
 
-      //converting metadata to a blob and uploading
+      // 3. Create dataset in database FIRST (without blockchain ID)
+      console.log("Received datacid is: ", dataCid);
+      let backendPayload: dataSetBackendPayload = {
+        name: name,
+        blockchain_pool_id: null, // Start with null
+        description: `Dataset: ${name}`,
+        ipfs_hash: dataCid,
+        file_size: file.size,
+        file_type: file.type,
+        owner_address: account || "anonymous",
+        price: price
+      }
+      console.log("Contacting the backend to create dataset record:", backendPayload);
+      const backendResponse = await fetchData.post('/datasets', backendPayload);
+
+      if (!backendResponse || backendResponse.status !== 201) {
+        throw new Error("Failed to create dataset in database");
+      }
+
+      const databaseId = backendResponse.data.data?.id || backendResponse.data.id; // Handle different response formats
+      console.log("Dataset created in database with ID:", databaseId);
+
+
+      // 4. Create pool on blockchain
       const pool = await createDataPool(dataCid, metadataHash, price.toString());
-      if (pool && pool.success) {
+      console.log("Pool id has been grabbed: ", pool?.poolId);
+
+      if (pool && pool.success && pool.poolId) {
+        // 5. Update database record with blockchain pool ID
+        const updateResponse = await fetchData.patch(`/datasets/${databaseId}`, {
+          blockchain_pool_id: pool.poolId
+        });
+
+        if (updateResponse && updateResponse.status === 200) {
+          console.log("Backend dataset has been updated!");
+          toast({
+            title: "Dataset Created Successfully!",
+            description: `"${name}" uploaded with Database ID: ${databaseId}, Blockchain Pool ID: ${pool.poolId}`,
+          })
+          window.location.href = "/dashboard";
+        }
+      } else {
+        // Blockchain creation failed, but we have database record
         toast({
-          title: "Pool created successfully!",
-          description: `Dataset "${name}" has been uploaded and pool created${walletAddress ? "" : " • connect a wallet to claim ownership next time"}`,
+          title: "Partial Success",
+          description: `Dataset saved to database (ID: ${databaseId}) but blockchain creation failed. You can retry later.`,
+          variant: "destructive"
         })
       }
 

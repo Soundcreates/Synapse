@@ -4,6 +4,7 @@ import {
   getDataSets,
   getDataSetByIdOrOwner,
   purchaseDataSet,
+  updateDataSet,
 } from "../controller/dataSetControlller";
 
 const router = Router();
@@ -13,6 +14,7 @@ router.post("/datasets", createDataSet);
 router.get("/datasets", getDataSets);
 router.get("/datasets/:id", getDataSetByIdOrOwner);
 router.get("/datasets/owner/:ownerAddress", getDataSetByIdOrOwner);
+router.patch("/datasets/:id", updateDataSet);
 router.patch("/datasets/:dataSetId/purchase", purchaseDataSet);
 
 export default router;

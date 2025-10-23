@@ -9,12 +9,14 @@ import { sql } from "drizzle-orm";
 
 export const datasets = pgTable("datasets", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  blockchain_pool_id: integer("blockchain_pool_id").unique(), // Remove .notNull() to make it optional
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   ipfs_hash: varchar("ipfs_hash", { length: 100 }).notNull(),
   file_size: integer("file_size").notNull(),
   file_type: varchar("file_type", { length: 50 }),
   owner_address: varchar("owner_address", { length: 42 }).notNull(),
+  price: integer("price").notNull(),
   purchasers: text("purchasers")
     .array()
     .default(sql`'{}'::text[]`),
@@ -30,9 +32,11 @@ export type DataSet = Dataset;
 
 export interface CreateDataSetInput {
   name: string;
+  blockchain_pool_id?: string | number | null; // Make optional to allow creation without blockchain ID
   description?: string;
   ipfs_hash: string;
   file_size: number;
-  file_type: string;
+  file_type?: string;
   owner_address: string;
+  price: string;
 }

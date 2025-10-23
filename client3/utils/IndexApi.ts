@@ -2,12 +2,14 @@ import { toast } from "sonner";
 import { fetchData } from "./baseUrl";
 
 type DataPool = {
-  id: string;
+  id?: string;
   name: string;
-  price: number;
-  owner: string;
-  cid?: string;
   description?: string;
+  price?: string;
+  ipfs_hash: string;
+  file_size: number;
+  file_type: string;
+  owner_address: string;
 };
 
 type Purchase = {
@@ -59,7 +61,7 @@ export async function uploadToIPFS(_file: File): Promise<{ cid: string }> {
     if (response.status === 200) {
       console.log("File uploaded to IPFS successfully");
       toast.success("File uploaded to IPFS successfully");
-      window.location.href = "/dashboard";
+
       return { cid: response.data.cid };
     } else {
       console.error("Upload failed with status:", response.status);

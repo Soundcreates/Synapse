@@ -1,5 +1,6 @@
+version: "3.8"
+
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: synapse_postgres
@@ -7,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: SynapseDB
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Cr7#thegreat
+      POSTGRES_PASSWORD: synapse
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5432:5432"
@@ -15,7 +16,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgress -d SynapseDB"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d SynapseDB"]
       interval: 30s
       timeout: 10s
       retries: 3
