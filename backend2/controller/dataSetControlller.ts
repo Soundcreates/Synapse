@@ -90,15 +90,20 @@ export const getDataSets = async (
       .select()
       .from(datasets)
       .orderBy(desc(datasets.created_at));
-    if (allDatasets.length === 0) {
-      return res.status(404).json({ message: "No datasets found" });
-    }
 
-    return res.status(200).json(allDatasets);
+    console.log("datasets being sent: ", allDatasets);
+
+    return res.status(200).json({
+      success: true,
+      allDatasets: allDatasets,
+    });
   } catch (error: any) {
-    return res
-      .status(500)
-      .json({ message: error.message || "Failed to fetch datasets" });
+    console.error("Error fetching datasets:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch datasets",
+      allDatasets: [],
+    });
   }
 };
 

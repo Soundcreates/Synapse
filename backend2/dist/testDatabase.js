@@ -80,6 +80,7 @@ class DatabaseTester {
                 file_type: "json",
                 owner_address: "0x1234567890123456789012345678901234567890",
                 price: 100, // Add the required price field
+                tx_hash: "0xTestTxHash" + Date.now(), // Add the required tx_hash field
             };
             const [inserted] = await connectDB_1.db.insert(DataSetModel_1.datasets).values(testData).returning();
             if (inserted && inserted.id) {

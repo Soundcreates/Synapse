@@ -1,48 +1,59 @@
 import { toast } from "sonner";
 import { fetchData } from "./baseUrl";
 
-type DataPool = {
-  id?: string;
+export type DataPool = {
+  id: number;
+  blockchain_pool_id?: number | null;
   name: string;
-  description?: string;
-  price?: string;
+  description?: string | null;
+  price: number;
   ipfs_hash: string;
   file_size: number;
-  file_type: string;
+  file_type?: string | null;
   owner_address: string;
+  tx_hash?: string | null;
+  purchasers?: string[] | null;
+  created_at: string;
+  updated_at: string;
 };
 
 // In-memory stores (frontend-only simulation)
 const pools: DataPool[] = [
   {
-    id: "pool_demo_1",
+    id: 1,
     name: "Global Weather Dataset",
-    price: "12",
+    price: 12,
     owner_address: "0x1234567890abcdef1234567890abcdef12345678",
     description: "Hourly observations across 1200 stations (2015-2024).",
     ipfs_hash: "QmDemo1",
     file_size: 1024000,
     file_type: "application/json",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
   {
-    id: "pool_demo_2",
+    id: 2,
     name: "Retail Transactions (Synthetic)",
-    price: "9",
+    price: 9,
     owner_address: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
     description: "10M rows of anonymized SKU-level detail.",
     ipfs_hash: "QmDemo2",
     file_size: 2048000,
     file_type: "text/csv",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
   {
-    id: "pool_demo_3",
+    id: 3,
     name: "Mobility Patterns EU",
-    price: "15",
+    price: 15,
     owner_address: "0x9999999999999999999999999999999999999999",
     description: "Aggregated device movement trends (2020-2023).",
     ipfs_hash: "QmDemo3",
     file_size: 3072000,
     file_type: "application/json",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
 ];
 
@@ -163,19 +174,48 @@ export async function getUserDashboard(walletAddress: string): Promise<{
   }
 }
 
-export async function getMarketplace(): Promise<DataPool[]> {
-  // Simulate API call
+export async function getMarketplace(): Promise<{
+  success: boolean;
+  dataSetsList: DataPool[];
+}> {
   console.log("Fetching marketplace data");
-
-  // Return all available pools
-  return pools;
+  let dataSetsList: DataPool[] = [];
+  try {
+    console.log("Making API call to /datasets");
+    const fetchResponse = await fetchData.get("/datasets");
+    console.log("API Response status:", fetchResponse.status);
+    console.log("API Response data:", fetchResponse.data);
+    
+    if (fetchResponse.status === 200) {
+      // Handle both old format (direct array) and new format (with success property)
+      if (fetchResponse.data.success && fetchResponse.data.allDatasets) {
+        dataSetsList = fetchResponse.data.allDatasets;
+      } else if (Array.isArray(fetchResponse.data)) {
+        // Handle direct array response (fallback for old format)
+        dataSetsList = fetchResponse.data;
+      } else {
+        console.warn("Unexpected response format:", fetchResponse.data);
+      }
+      
+      console.log("datasets being grabbed: ", dataSetsList);
+      return { success: true, dataSetsList };
+    }
+  } catch (err: any) {
+    console.error("Error at getMarketplace function:");
+    console.error("Error response:", err.response?.data);
+    console.error("Error message:", err.message);
+    console.error("Error code:", err.code);
+    if (err.response) {
+      console.error("Response status:", err.response.status);
+    }
+  }
+  return { success: false, dataSetsList };
 }
 
 export async function purchaseDataAccess(
-  poolId: string,
+  poolId: number,
   walletAddress: string
-): Promise<{ id: string; poolId: string; wallet: string; date: string }> {
-  // Simulate API call
+): Promise<{ id: string; poolId: number; wallet: string; date: string }> {
   console.log(
     "Purchasing data access for pool:",
     poolId,
@@ -183,12 +223,32 @@ export async function purchaseDataAccess(
     walletAddress
   );
 
-  const purchase = {
-    id: `purchase_${Date.now()}`,
-    poolId,
-    wallet: walletAddress,
-    date: new Date().toISOString(),
-  };
+  try {
+    const response = await fetchData.patch(`/datasets/${poolId}/purchase`, {
+      purchaserAddress: walletAddress,
+    });
 
-  return purchase;
+    if (response.status === 200 && response.data.success) {
+      console.log(
+        "Dataset purchased successfully:",
+        response.data.dataSetPurchased
+      );
+      return {
+        id: `purchase_${Date.now()}`,
+        poolId,
+        wallet: walletAddress,
+        date: new Date().toISOString(),
+      };
+    } else {
+      throw new Error("Failed to purchase dataset");
+    }
+  } catch (err: any) {
+    console.error(
+      "Error purchasing dataset:",
+      err.response?.data || err.message
+    );
+    throw new Error(
+      err.response?.data?.message || "Failed to purchase dataset"
+    );
+  }
 }

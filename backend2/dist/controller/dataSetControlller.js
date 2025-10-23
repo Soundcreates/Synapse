@@ -36,6 +36,7 @@ const createDataSet = async (req, res) => {
             name: input.name,
             description: input.description,
             ipfs_hash: input.ipfs_hash,
+            tx_hash: input.tx_hash || null, // Handle undefined tx_hash
             file_size: input.file_size,
             file_type: input.file_type,
             owner_address: input.owner_address,
@@ -67,15 +68,19 @@ const getDataSets = async (req, res) => {
             .select()
             .from(DataSetModel_1.datasets)
             .orderBy((0, drizzle_orm_1.desc)(DataSetModel_1.datasets.created_at));
-        if (allDatasets.length === 0) {
-            return res.status(404).json({ message: "No datasets found" });
-        }
-        return res.status(200).json(allDatasets);
+        console.log("datasets being sent: ", allDatasets);
+        return res.status(200).json({
+            success: true,
+            allDatasets: allDatasets,
+        });
     }
     catch (error) {
-        return res
-            .status(500)
-            .json({ message: error.message || "Failed to fetch datasets" });
+        console.error("Error fetching datasets:", error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to fetch datasets",
+            allDatasets: [],
+        });
     }
 };
 exports.getDataSets = getDataSets;
@@ -100,12 +105,20 @@ const getDataSetByIdOrOwner = async (req, res) => {
                 .from(DataSetModel_1.datasets)
                 .where((0, drizzle_orm_1.ilike)(DataSetModel_1.datasets.owner_address, ownerAddress))
                 .orderBy((0, drizzle_orm_1.desc)(DataSetModel_1.datasets.created_at));
-            if (dataSetsByOwner.length > 0) {
-                return res.status(200).json({
-                    success: true,
-                    data: dataSetsByOwner,
-                });
-            }
+            //tracking and sending the datasets that the ownerAddress has purchased
+            const dataSetsPurchasedList = await connectDB_1.db.select().from(DataSetModel_1.datasets);
+            const dataSetsPurchasedByowner = dataSetsPurchasedList.filter((dataSet) => {
+                return (Array.isArray(dataSet.purchasers) &&
+                    dataSet.purchasers.includes(ownerAddress));
+            });
+            console.log("Datasets uploaded by owner: ", dataSetsByOwner);
+            console.log("datasets purchased by owners: ", dataSetsPurchasedByowner);
+            // Return data even if one of the arrays is empty
+            return res.status(200).json({
+                success: true,
+                dataSetsUploaded: dataSetsByOwner,
+                dataSetsPurchased: dataSetsPurchasedByowner,
+            });
         }
         //but if dataset found by id, here is the returning shi
         if (dataset) {

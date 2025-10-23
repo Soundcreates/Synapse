@@ -12,6 +12,7 @@ exports.datasets = (0, pg_core_1.pgTable)("datasets", {
     file_size: (0, pg_core_1.integer)("file_size").notNull(),
     file_type: (0, pg_core_1.varchar)("file_type", { length: 50 }),
     owner_address: (0, pg_core_1.varchar)("owner_address", { length: 42 }).notNull(),
+    tx_hash: (0, pg_core_1.varchar)("tx_hash", { length: 66 }),
     price: (0, pg_core_1.integer)("price").notNull(),
     purchasers: (0, pg_core_1.text)("purchasers")
         .array()

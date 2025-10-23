@@ -146,6 +146,25 @@ export declare const datasets: import("drizzle-orm/pg-core").PgTableWithColumns<
         }, {}, {
             length: 42;
         }>;
+        tx_hash: import("drizzle-orm/pg-core").PgColumn<{
+            name: "tx_hash";
+            tableName: "datasets";
+            dataType: "string";
+            columnType: "PgVarchar";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: 66;
+        }>;
         price: import("drizzle-orm/pg-core").PgColumn<{
             name: "price";
             tableName: "datasets";
@@ -251,6 +270,7 @@ export interface CreateDataSetInput {
     blockchain_pool_id?: string | number | null;
     description?: string;
     ipfs_hash: string;
+    tx_hash?: string;
     file_size: number;
     file_type?: string;
     owner_address: string;

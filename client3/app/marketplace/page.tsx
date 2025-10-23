@@ -4,28 +4,48 @@ import useSWR from "swr"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { getMarketplace, purchaseDataAccess } from "@/utils/IndexApi"
+import { getMarketplace, purchaseDataAccess, DataPool } from "@/utils/IndexApi"
 
 import { useWallet } from "../context/WalletContext"
 import { useMkp } from "../context/TokenMarketplaceContext"
+import { useEffect, useState } from "react"
 
-const fetcher = async () => getMarketplace()
+
 
 export default function MarketplacePage() {
-  const { data, isLoading, mutate } = useSWR("marketplace", fetcher)
+
   const { account: walletAddress } = useWallet();
+  const [isLoading, setIsLoading] = useState<Boolean>(false);
+  const [dataSets, setDataSets] = useState<DataPool[]>([]);
+
+  useEffect(() => {
+    const fetcher = async () => {
+      setIsLoading(true);
+      try {
+        const response = await getMarketplace();
+        if (response.success === true) {
+          setDataSets(response.dataSetsList);
+          console.log("datasets fetched: ", response.dataSetsList);
+        } else {
+          console.error("Failed to fetch datasets");
+          setDataSets([]);
+        }
+      } catch (error) {
+        console.error("Error fetching datasets:", error);
+        setDataSets([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetcher();
+  }, []); // Remove dataSets from dependencies to prevent infinite loop
+
 
   const { toast } = useToast()
 
-  async function onPurchase(poolId: string) {
-    if (!walletAddress) {
-      toast({ title: "Connect wallet", description: "Please connect a wallet to purchase." })
-      return
-    }
-    const p = await purchaseDataAccess(poolId, walletAddress)
-    toast({ title: "Purchase successful", description: `Purchase ${p.id} created.` })
-    // nothing to refetch here, but if we had credits/inventory, we could mutate.
-    mutate()
+  async function onPurchase(poolId: number) {
+    console.log("mock purchase for dataset ID:", poolId)
   }
 
   return (
@@ -38,7 +58,7 @@ export default function MarketplacePage() {
         <p className="text-muted-foreground animate-fade">Loading datasets…</p>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {(data ?? []).map((pool, i) => (
+          {(dataSets ?? []).map((pool: DataPool, i) => (
             <Card
               key={pool.id}
               className="flex flex-col animate-fade-up"
