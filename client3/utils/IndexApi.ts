@@ -129,7 +129,7 @@ export async function getUserDashboard(walletAddress: string): Promise<{
 
   try {
     const dataPoolResponseFromBackend = await fetchData.get(
-      `/datasets/owner/${walletAddress}`
+      `/datasets/owner/${walletAddress}`,
     );
 
     console.log("Backend response:", dataPoolResponseFromBackend.data);
@@ -156,7 +156,7 @@ export async function getUserDashboard(walletAddress: string): Promise<{
     // If success is false or response format is unexpected
     console.warn(
       "Unexpected response format:",
-      dataPoolResponseFromBackend.data
+      dataPoolResponseFromBackend.data,
     );
     return {
       myPools: [],
@@ -185,7 +185,7 @@ export async function getMarketplace(): Promise<{
     const fetchResponse = await fetchData.get("/datasets");
     console.log("API Response status:", fetchResponse.status);
     console.log("API Response data:", fetchResponse.data);
-    
+
     if (fetchResponse.status === 200) {
       // Handle both old format (direct array) and new format (with success property)
       if (fetchResponse.data.success && fetchResponse.data.allDatasets) {
@@ -196,7 +196,7 @@ export async function getMarketplace(): Promise<{
       } else {
         console.warn("Unexpected response format:", fetchResponse.data);
       }
-      
+
       console.log("datasets being grabbed: ", dataSetsList);
       return { success: true, dataSetsList };
     }
@@ -214,13 +214,13 @@ export async function getMarketplace(): Promise<{
 
 export async function purchaseDataAccess(
   poolId: number,
-  walletAddress: string
-): Promise<{ id: string; poolId: number; wallet: string; date: string }> {
+  walletAddress: string,
+): Promise<{ success: boolean; blockchain_pool_id: number | BigInt }> {
   console.log(
     "Purchasing data access for pool:",
     poolId,
     "by wallet:",
-    walletAddress
+    walletAddress,
   );
 
   try {
@@ -231,13 +231,11 @@ export async function purchaseDataAccess(
     if (response.status === 200 && response.data.success) {
       console.log(
         "Dataset purchased successfully:",
-        response.data.dataSetPurchased
+        response.data.dataSetPurchased,
       );
       return {
-        id: `purchase_${Date.now()}`,
-        poolId,
-        wallet: walletAddress,
-        date: new Date().toISOString(),
+        success: true,
+        blockchain_pool_id: response.data.dataSetPurchased.blockchain_pool_id,
       };
     } else {
       throw new Error("Failed to purchase dataset");
@@ -245,10 +243,11 @@ export async function purchaseDataAccess(
   } catch (err: any) {
     console.error(
       "Error purchasing dataset:",
-      err.response?.data || err.message
+      err.response?.data || err.message,
     );
-    throw new Error(
-      err.response?.data?.message || "Failed to purchase dataset"
-    );
+    return {
+      success: false,
+      blockchain_pool_id: 0,
+    };
   }
 }

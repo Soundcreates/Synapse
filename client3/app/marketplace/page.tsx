@@ -1,22 +1,21 @@
-"use client"
+"use client";
 
-import useSWR from "swr"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { useToast } from "@/hooks/use-toast"
-import { getMarketplace, purchaseDataAccess, DataPool } from "@/utils/IndexApi"
+import useSWR from "swr";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { getMarketplace, purchaseDataAccess, DataPool } from "@/utils/IndexApi";
 
-import { useWallet } from "../context/WalletContext"
-import { useMkp } from "../context/TokenMarketplaceContext"
-import { useEffect, useState } from "react"
-
-
+import { useWallet } from "../context/WalletContext";
+import { useMkp } from "../context/TokenMarketplaceContext";
+import { useEffect, useState } from "react";
+import { useDataRegistry } from "../context/DataRegistryContext";
 
 export default function MarketplacePage() {
-
   const { account: walletAddress } = useWallet();
   const [isLoading, setIsLoading] = useState<Boolean>(false);
   const [dataSets, setDataSets] = useState<DataPool[]>([]);
+  const { purchaseDataAccessFromChain } = useDataRegistry();
 
   useEffect(() => {
     const fetcher = async () => {
@@ -36,16 +35,37 @@ export default function MarketplacePage() {
       } finally {
         setIsLoading(false);
       }
-    }
+    };
 
     fetcher();
   }, []); // Remove dataSets from dependencies to prevent infinite loop
 
-
-  const { toast } = useToast()
+  const { toast } = useToast();
 
   async function onPurchase(poolId: number) {
-    console.log("mock purchase for dataset ID:", poolId)
+    console.log("mock purchase for dataset ID:", poolId);
+
+    try {
+      console.log(
+        "Sending it to backend factory to retreive the blockchain-pool-id",
+      );
+      const backendResponse = await purchaseDataAccess(poolId, walletAddress);
+      console.log("The backends response is: ", backendResponse);
+      if (backendResponse && backendResponse.success == true) {
+        const blockchain_pool_id = backendResponse.blockchain_pool_id;
+        console.log("blockchain-pool-id: ", blockchain_pool_id);
+        const purchaseTx =
+          await purchaseDataAccessFromChain(blockchain_pool_id);
+
+        const receipt = await purchaseTx.wait();
+        console.log("Purchase transaction has happened: ", receipt);
+      }
+    } catch (err: any) {
+      console.log(
+        "Error happened at marketplace buy page in onPurchase function",
+      );
+      console.error(err.message);
+    }
   }
 
   return (
@@ -65,12 +85,21 @@ export default function MarketplacePage() {
               style={{ animationDelay: `${100 + i * 80}ms` }}
             >
               <CardContent className="flex flex-1 flex-col gap-4 p-6">
-                <img src="/tabular-data-preview.jpg" alt={`${pool.name} preview`} className="w-full rounded-md" />
+                <img
+                  src="/tabular-data-preview.jpg"
+                  alt={`${pool.name} preview`}
+                  className="w-full rounded-md"
+                />
                 <div className="space-y-1">
                   <h3 className="text-lg font-medium">{pool.name}</h3>
-                  <p className="text-sm text-muted-foreground">{pool.description ?? "No description provided."}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {pool.description ?? "No description provided."}
+                  </p>
                   <p className="text-sm">
-                    Owner: <span className="text-muted-foreground">{pool.owner_address}</span>
+                    Owner:{" "}
+                    <span className="text-muted-foreground">
+                      {pool.owner_address}
+                    </span>
                   </p>
                 </div>
                 <div className="mt-auto flex items-center justify-between">
@@ -83,5 +112,5 @@ export default function MarketplacePage() {
         </div>
       )}
     </div>
-  )
+  );
 }

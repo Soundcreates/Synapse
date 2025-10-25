@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { ethers } from "ethers";
@@ -13,29 +13,39 @@ type DataPool = {
   pricePerAccess: bigint;
   totalContributors: number;
   isActive: boolean;
-}
+};
 
 type Contract = {
-  address: string,
-  abi: any,
-  contractInstance: ethers.Contract | null | undefined,
-}
+  address: string;
+  abi: any;
+  contractInstance: ethers.Contract | null | undefined;
+};
 
 type CreateDataPoolType = {
-  success: boolean,
-  poolId: number | string | null,
-  tx_hash: string,
-}
+  success: boolean;
+  poolId: number | string | null;
+  tx_hash: string;
+};
 
 type DataRegistryContextType = {
   // Main contract functions
-  createDataPool: (ipfsHash: string, metaDataHash: string, pricePerAccess: string) => Promise<CreateDataPoolType | null>;
-  assignContributors: (poolId: number, contributors: string[]) => Promise<boolean>;
-  purchaseDataAccess: (poolId: number) => Promise<boolean>;
+  createDataPool: (
+    ipfsHash: string,
+    metaDataHash: string,
+    pricePerAccess: string,
+  ) => Promise<CreateDataPoolType | null>;
+  assignContributors: (
+    poolId: number,
+    contributors: string[],
+  ) => Promise<boolean>;
+  purchaseDataAccessFromChain: (poolId: number | BigInt) => Promise<boolean>;
 
   // View functions
   getDataPool: (poolId: number) => Promise<DataPool | null>;
-  getContributorShare: (poolId: number, contributor: string) => Promise<bigint | null>;
+  getContributorShare: (
+    poolId: number,
+    contributor: string,
+  ) => Promise<bigint | null>;
   getContributors: (poolId: number) => Promise<string[] | null>;
   getNextPoolId: () => Promise<number | null>;
   getCreatorPools: (creator: string, index: number) => Promise<number | null>;
@@ -47,15 +57,21 @@ type DataRegistryContextType = {
   contract: ethers.Contract | null;
   isLoading: boolean;
   isClient: boolean;
-}
+};
 
-export const DataRegistryContext = createContext<DataRegistryContextType | undefined>(undefined);
+export const DataRegistryContext = createContext<
+  DataRegistryContextType | undefined
+>(undefined);
 
-export const DataRegistryContextProvider = ({ children }: { children: React.ReactNode }) => {
+export const DataRegistryContextProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
   const [contract, setContract] = useState<Contract>({
     abi: JSON.parse(DataRegistry.abi),
     address: DataRegistry.address,
-    contractInstance: null
+    contractInstance: null,
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isClient, setIsClient] = useState<boolean>(false);
@@ -91,7 +107,10 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
           signer,
         );
 
-        setContract(prev => ({ ...prev, contractInstance: contractInstance }));
+        setContract((prev) => ({
+          ...prev,
+          contractInstance: contractInstance,
+        }));
         setIsLoading(false);
         console.log("Contract initialized:", contractInstance);
       } catch (err) {
@@ -109,7 +128,11 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
   }, [isClient, toast]);
 
   // Create a new data pool
-  const createDataPool = async (ipfsHash: string, metaDataHash: string, pricePerAccess: string): Promise<CreateDataPoolType | null> => {
+  const createDataPool = async (
+    ipfsHash: string,
+    metaDataHash: string,
+    pricePerAccess: string,
+  ): Promise<CreateDataPoolType | null> => {
     if (!isClient) {
       toast({
         title: "Client Not Ready",
@@ -132,7 +155,7 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
       const tx = await contract.contractInstance.createDataPool(
         ipfsHash,
         metaDataHash,
-        ethers.parseEther(pricePerAccess)
+        ethers.parseEther(pricePerAccess),
       );
 
       toast({
@@ -143,8 +166,6 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
       console.log("Tx hash is: ", tx.hash);
       const tx_hash = tx.hash;
       const receipt = await tx.wait();
-
-
 
       // Extract poolId from event logs
       const event = receipt.logs.find((log: any) => {
@@ -175,12 +196,15 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
         success: true,
         poolId: poolId,
         tx_hash: tx_hash,
-      }
+      };
     } catch (err: any) {
       console.error("Error creating data pool:", err);
       toast({
         title: "Failed to Create Data Pool",
-        description: err.reason || err.message || "An error occurred while creating the data pool.",
+        description:
+          err.reason ||
+          err.message ||
+          "An error occurred while creating the data pool.",
         variant: "destructive",
       });
       return null;
@@ -188,7 +212,10 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
   };
 
   // Assign contributors to a data pool
-  const assignContributors = async (poolId: number, contributors: string[]): Promise<boolean> => {
+  const assignContributors = async (
+    poolId: number,
+    contributors: string[],
+  ): Promise<boolean> => {
     if (!contract.contractInstance) {
       toast({
         title: "Contract Not Initialized",
@@ -199,7 +226,10 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
     }
 
     try {
-      const tx = await contract.contractInstance.assignContributors(poolId, contributors);
+      const tx = await contract.contractInstance.assignContributors(
+        poolId,
+        contributors,
+      );
 
       toast({
         title: "Transaction Submitted",
@@ -218,7 +248,10 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
       console.error("Error assigning contributors:", err);
       toast({
         title: "Failed to Assign Contributors",
-        description: err.reason || err.message || "An error occurred while assigning contributors.",
+        description:
+          err.reason ||
+          err.message ||
+          "An error occurred while assigning contributors.",
         variant: "destructive",
       });
       return false;
@@ -226,7 +259,9 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
   };
 
   // Purchase data access (note: amount is determined by the contract's pricePerAccess)
-  const purchaseDataAccess = async (poolId: number): Promise<boolean> => {
+  const purchaseDataAccessFromChain = async (
+    poolId: number | BigInt,
+  ): Promise<boolean> => {
     if (!contract.contractInstance) {
       toast({
         title: "Contract Not Initialized",
@@ -242,7 +277,7 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
       const pricePerAccess = poolData[3]; // pricePerAccess is the 4th element
 
       const tx = await contract.contractInstance.purchaseDataAccess(poolId, {
-        value: pricePerAccess
+        value: pricePerAccess,
       });
 
       toast({
@@ -262,7 +297,10 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
       console.error("Error purchasing data access:", err);
       toast({
         title: "Purchase Failed",
-        description: err.reason || err.message || "An error occurred while purchasing data access.",
+        description:
+          err.reason ||
+          err.message ||
+          "An error occurred while purchasing data access.",
         variant: "destructive",
       });
       return false;
@@ -293,11 +331,17 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
   };
 
   // Get contributor share
-  const getContributorShare = async (poolId: number, contributor: string): Promise<bigint | null> => {
+  const getContributorShare = async (
+    poolId: number,
+    contributor: string,
+  ): Promise<bigint | null> => {
     if (!contract.contractInstance) return null;
 
     try {
-      const share = await contract.contractInstance.getContributorShare(poolId, contributor);
+      const share = await contract.contractInstance.getContributorShare(
+        poolId,
+        contributor,
+      );
       return share;
     } catch (err: any) {
       console.error("Error getting contributor share:", err);
@@ -310,7 +354,8 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
     if (!contract.contractInstance) return null;
 
     try {
-      const contributors = await contract.contractInstance.getContributors(poolId);
+      const contributors =
+        await contract.contractInstance.getContributors(poolId);
       return contributors;
     } catch (err: any) {
       console.error("Error getting contributors:", err);
@@ -332,11 +377,17 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
   };
 
   // Get creator pools
-  const getCreatorPools = async (creator: string, index: number): Promise<number | null> => {
+  const getCreatorPools = async (
+    creator: string,
+    index: number,
+  ): Promise<number | null> => {
     if (!contract.contractInstance) return null;
 
     try {
-      const poolId = await contract.contractInstance.creatorPools(creator, index);
+      const poolId = await contract.contractInstance.creatorPools(
+        creator,
+        index,
+      );
       return Number(poolId);
     } catch (err: any) {
       console.error("Error getting creator pools:", err);
@@ -387,7 +438,7 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
     // Main functions
     createDataPool,
     assignContributors,
-    purchaseDataAccess,
+    purchaseDataAccessFromChain,
 
     // View functions
     getDataPool,
@@ -415,7 +466,9 @@ export const DataRegistryContextProvider = ({ children }: { children: React.Reac
 export const useDataRegistry = () => {
   const context = useContext(DataRegistryContext);
   if (context === undefined) {
-    throw new Error('useDataRegistry must be used within a DataRegistryContextProvider');
+    throw new Error(
+      "useDataRegistry must be used within a DataRegistryContextProvider",
+    );
   }
   return context;
 };
