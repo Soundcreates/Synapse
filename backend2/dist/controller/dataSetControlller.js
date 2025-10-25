@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateDataSet = exports.purchaseDataSet = exports.getDataSetByIdOrOwner = exports.getDataSets = exports.createDataSet = void 0;
+exports.updateDataSet = exports.confirmPurchase = exports.getBlockchainPoolId = exports.getDataSetByIdOrOwner = exports.getDataSets = exports.createDataSet = void 0;
 const drizzle_orm_1 = require("drizzle-orm");
 const connectDB_1 = require("../config/connectDB");
 const DataSetModel_1 = require("../models/DataSetModel");
@@ -44,8 +44,6 @@ const createDataSet = async (req, res) => {
             blockchain_pool_id: input.blockchain_pool_id
                 ? Number(input.blockchain_pool_id)
                 : null,
-            created_at: new Date(),
-            updated_at: new Date(),
         })
             .returning();
         console.log("its been stored");
@@ -142,7 +140,7 @@ const getDataSetByIdOrOwner = async (req, res) => {
     }
 };
 exports.getDataSetByIdOrOwner = getDataSetByIdOrOwner;
-const purchaseDataSet = async (req, res) => {
+const getBlockchainPoolId = async (req, res) => {
     const { dataSetId } = req.params;
     const { purchaserAddress } = req.body;
     try {
@@ -166,14 +164,67 @@ const purchaseDataSet = async (req, res) => {
         const currentPurchasers = dataSet.purchasers || [];
         if (currentPurchasers.includes(purchaserAddress)) {
             console.error("Dataset already purchased by this address");
-            return res.status(500).json({
+            return res.status(400).json({
+                success: false,
+                message: "Dataset already purchased by this address",
+            });
+        }
+        // Only return the blockchain_pool_id without updating purchasers
+        return res.status(200).json({
+            success: true,
+            blockchain_pool_id: dataSet.blockchain_pool_id,
+            dataSet: {
+                id: dataSet.id,
+                name: dataSet.name,
+                price: dataSet.price,
+                owner_address: dataSet.owner_address,
+            },
+        });
+    }
+    catch (err) {
+        console.error("Error while getting blockchain pool id for dataset id: ", dataSetId);
+        return res.status(500).json({
+            success: false,
+            message: err.message || "error while getting blockchain pool id",
+        });
+    }
+};
+exports.getBlockchainPoolId = getBlockchainPoolId;
+const confirmPurchase = async (req, res) => {
+    const { dataSetId } = req.params;
+    const { purchaserAddress, transactionHash } = req.body;
+    try {
+        if (!dataSetId || isNaN(Number(dataSetId))) {
+            return res.status(400).json({ message: "Invalid or missing dataset id" });
+        }
+        if (!purchaserAddress) {
+            return res.status(400).json({ message: "Missing purchaser address" });
+        }
+        if (!transactionHash) {
+            return res.status(400).json({ message: "Missing transaction hash" });
+        }
+        const [dataSet] = await connectDB_1.db
+            .select()
+            .from(DataSetModel_1.datasets)
+            .where((0, drizzle_orm_1.eq)(DataSetModel_1.datasets.id, Number(dataSetId)));
+        if (!dataSet) {
+            console.error("data set doesn't exist");
+            return res.status(404).json({
+                success: false,
+                message: "data set doesnt exist",
+            });
+        }
+        const currentPurchasers = dataSet.purchasers || [];
+        if (currentPurchasers.includes(purchaserAddress)) {
+            console.error("Dataset already purchased by this address");
+            return res.status(400).json({
                 success: false,
                 message: "Dataset already purchased by this address",
             });
         }
         const updatedPurchasers = [...currentPurchasers, purchaserAddress];
-        //updating the dbs purchasers array
-        const [updatedDataSet] = await connectDB_1.db //we are using [] to destructure as drizzle is doing .returning, this will automatically place the first instance from the array into the variable
+        // Update the database with purchaser and transaction hash
+        const [updatedDataSet] = await connectDB_1.db
             .update(DataSetModel_1.datasets)
             .set({
             purchasers: updatedPurchasers,
@@ -184,17 +235,18 @@ const purchaseDataSet = async (req, res) => {
         return res.status(200).json({
             success: true,
             dataSetPurchased: updatedDataSet,
+            message: "Purchase confirmed successfully",
         });
     }
     catch (err) {
-        console.error("Error while purchasing the dataset with dataset id: ", dataSetId);
+        console.error("Error while confirming purchase for dataset id: ", dataSetId);
         return res.status(500).json({
             success: false,
-            message: err.message || "error while processing of dataset purchasing",
+            message: err.message || "error while confirming purchase",
         });
     }
 };
-exports.purchaseDataSet = purchaseDataSet;
+exports.confirmPurchase = confirmPurchase;
 // Add update function for blockchain ID
 const updateDataSet = async (req, res) => {
     const { id } = req.params;

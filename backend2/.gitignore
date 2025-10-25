@@ -3,3 +3,5 @@ node_modules/
 
 .env
 testDatabase.ts
+runMigrations.ts
+clearDatabase.ts

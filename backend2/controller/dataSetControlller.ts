@@ -10,7 +10,7 @@ import {
 
 export const createDataSet = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   console.log("Welcome to create dataset factory");
   const input: CreateDataSetInput = req.body;
@@ -37,8 +37,8 @@ export const createDataSet = async (
       .where(
         and(
           ilike(datasets.name, input.name),
-          ilike(datasets.owner_address, input.owner_address)
-        )
+          ilike(datasets.owner_address, input.owner_address),
+        ),
       );
 
     if (existingDataset.length > 0) {
@@ -62,8 +62,6 @@ export const createDataSet = async (
         blockchain_pool_id: input.blockchain_pool_id
           ? Number(input.blockchain_pool_id)
           : null,
-        created_at: new Date(),
-        updated_at: new Date(),
       })
       .returning();
 
@@ -83,7 +81,7 @@ export const createDataSet = async (
 
 export const getDataSets = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   try {
     const allDatasets = await db
@@ -109,7 +107,7 @@ export const getDataSets = async (
 
 export const getDataSetByIdOrOwner = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   const { id, ownerAddress } = req.params;
   //we first fetch from id, if none we fetch from owneraddress
@@ -143,7 +141,7 @@ export const getDataSetByIdOrOwner = async (
             Array.isArray(dataSet.purchasers) &&
             dataSet.purchasers.includes(ownerAddress)
           );
-        }
+        },
       );
       console.log("Datasets uploaded by owner: ", dataSetsByOwner);
       console.log("datasets purchased by owners: ", dataSetsPurchasedByowner);
@@ -178,9 +176,9 @@ export const getDataSetByIdOrOwner = async (
   }
 };
 
-export const purchaseDataSet = async (
+export const getBlockchainPoolId = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   const { dataSetId } = req.params;
   const { purchaserAddress } = req.body;
@@ -209,14 +207,79 @@ export const purchaseDataSet = async (
     const currentPurchasers = dataSet.purchasers || [];
     if (currentPurchasers.includes(purchaserAddress)) {
       console.error("Dataset already purchased by this address");
-      return res.status(500).json({
+      return res.status(400).json({
         success: false,
         message: "Dataset already purchased by this address",
       });
     }
+
+    // Only return the blockchain_pool_id without updating purchasers
+    return res.status(200).json({
+      success: true,
+      blockchain_pool_id: dataSet.blockchain_pool_id,
+      dataSet: {
+        id: dataSet.id,
+        name: dataSet.name,
+        price: dataSet.price,
+        owner_address: dataSet.owner_address,
+      },
+    });
+  } catch (err: any) {
+    console.error(
+      "Error while getting blockchain pool id for dataset id: ",
+      dataSetId,
+    );
+    return res.status(500).json({
+      success: false,
+      message: err.message || "error while getting blockchain pool id",
+    });
+  }
+};
+
+export const confirmPurchase = async (
+  req: Request,
+  res: Response,
+): Promise<Response> => {
+  const { dataSetId } = req.params;
+  const { purchaserAddress, transactionHash } = req.body;
+
+  try {
+    if (!dataSetId || isNaN(Number(dataSetId))) {
+      return res.status(400).json({ message: "Invalid or missing dataset id" });
+    }
+    if (!purchaserAddress) {
+      return res.status(400).json({ message: "Missing purchaser address" });
+    }
+    if (!transactionHash) {
+      return res.status(400).json({ message: "Missing transaction hash" });
+    }
+
+    const [dataSet] = await db
+      .select()
+      .from(datasets)
+      .where(eq(datasets.id, Number(dataSetId)));
+
+    if (!dataSet) {
+      console.error("data set doesn't exist");
+      return res.status(404).json({
+        success: false,
+        message: "data set doesnt exist",
+      });
+    }
+
+    const currentPurchasers = dataSet.purchasers || [];
+    if (currentPurchasers.includes(purchaserAddress)) {
+      console.error("Dataset already purchased by this address");
+      return res.status(400).json({
+        success: false,
+        message: "Dataset already purchased by this address",
+      });
+    }
+
     const updatedPurchasers = [...currentPurchasers, purchaserAddress];
-    //updating the dbs purchasers array
-    const [updatedDataSet] = await db //we are using [] to destructure as drizzle is doing .returning, this will automatically place the first instance from the array into the variable
+
+    // Update the database with purchaser and transaction hash
+    const [updatedDataSet] = await db
       .update(datasets)
       .set({
         purchasers: updatedPurchasers,
@@ -228,15 +291,16 @@ export const purchaseDataSet = async (
     return res.status(200).json({
       success: true,
       dataSetPurchased: updatedDataSet,
+      message: "Purchase confirmed successfully",
     });
   } catch (err: any) {
     console.error(
-      "Error while purchasing the dataset with dataset id: ",
-      dataSetId
+      "Error while confirming purchase for dataset id: ",
+      dataSetId,
     );
     return res.status(500).json({
       success: false,
-      message: err.message || "error while processing of dataset purchasing",
+      message: err.message || "error while confirming purchase",
     });
   }
 };
@@ -244,7 +308,7 @@ export const purchaseDataSet = async (
 // Add update function for blockchain ID
 export const updateDataSet = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   const { id } = req.params;
   const updates = req.body;

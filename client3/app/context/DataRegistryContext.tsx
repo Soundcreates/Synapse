@@ -38,7 +38,7 @@ type DataRegistryContextType = {
     poolId: number,
     contributors: string[],
   ) => Promise<boolean>;
-  purchaseDataAccessFromChain: (poolId: number | BigInt) => Promise<boolean>;
+  purchaseDataAccessFromChain: (poolId: number | BigInt) => Promise<any>;
 
   // View functions
   getDataPool: (poolId: number) => Promise<DataPool | null>;
@@ -222,7 +222,7 @@ export const DataRegistryContextProvider = ({
         description: "Please wait for the contract to initialize.",
         variant: "destructive",
       });
-      return false;
+      return null;
     }
 
     try {
@@ -261,7 +261,7 @@ export const DataRegistryContextProvider = ({
   // Purchase data access (note: amount is determined by the contract's pricePerAccess)
   const purchaseDataAccessFromChain = async (
     poolId: number | BigInt,
-  ): Promise<boolean> => {
+  ): Promise<any> => {
     if (!contract.contractInstance) {
       toast({
         title: "Contract Not Initialized",
@@ -285,25 +285,11 @@ export const DataRegistryContextProvider = ({
         description: "Purchasing data access... Please wait for confirmation.",
       });
 
-      await tx.wait();
-
-      toast({
-        title: "Purchase Successful!",
-        description: `Successfully purchased access to data pool ${poolId}`,
-      });
-
-      return true;
+      return tx;
     } catch (err: any) {
       console.error("Error purchasing data access:", err);
-      toast({
-        title: "Purchase Failed",
-        description:
-          err.reason ||
-          err.message ||
-          "An error occurred while purchasing data access.",
-        variant: "destructive",
-      });
-      return false;
+      console.error("Error purchasing data access:", err);
+      throw err;
     }
   };
 

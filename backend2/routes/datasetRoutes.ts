@@ -3,7 +3,8 @@ import {
   createDataSet,
   getDataSets,
   getDataSetByIdOrOwner,
-  purchaseDataSet,
+  getBlockchainPoolId,
+  confirmPurchase,
   updateDataSet,
 } from "../controller/dataSetControlller";
 
@@ -15,6 +16,7 @@ router.get("/datasets", getDataSets);
 router.get("/datasets/owner/:ownerAddress", getDataSetByIdOrOwner);
 router.get("/datasets/:id", getDataSetByIdOrOwner);
 router.patch("/datasets/:id", updateDataSet);
-router.patch("/datasets/:dataSetId/purchase", purchaseDataSet);
+router.post("/datasets/:dataSetId/get-pool-id", getBlockchainPoolId);
+router.patch("/datasets/:dataSetId/confirm-purchase", confirmPurchase);
 
 export default router;

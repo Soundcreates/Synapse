@@ -212,42 +212,88 @@ export async function getMarketplace(): Promise<{
   return { success: false, dataSetsList };
 }
 
-export async function purchaseDataAccess(
+export async function getBlockchainPoolId(
   poolId: number,
   walletAddress: string,
 ): Promise<{ success: boolean; blockchain_pool_id: number | BigInt }> {
   console.log(
-    "Purchasing data access for pool:",
+    "Getting blockchain pool ID for pool:",
     poolId,
     "by wallet:",
     walletAddress,
   );
 
   try {
-    const response = await fetchData.patch(`/datasets/${poolId}/purchase`, {
+    const response = await fetchData.post(`/datasets/${poolId}/get-pool-id`, {
       purchaserAddress: walletAddress,
     });
 
     if (response.status === 200 && response.data.success) {
       console.log(
-        "Dataset purchased successfully:",
-        response.data.dataSetPurchased,
+        "Blockchain pool ID retrieved successfully:",
+        response.data.blockchain_pool_id,
       );
       return {
         success: true,
-        blockchain_pool_id: response.data.dataSetPurchased.blockchain_pool_id,
+        blockchain_pool_id: response.data.blockchain_pool_id,
       };
     } else {
-      throw new Error("Failed to purchase dataset");
+      throw new Error("Failed to get blockchain pool ID");
     }
   } catch (err: any) {
     console.error(
-      "Error purchasing dataset:",
+      "Error getting blockchain pool ID:",
       err.response?.data || err.message,
     );
     return {
       success: false,
       blockchain_pool_id: 0,
+    };
+  }
+}
+
+export async function confirmPurchase(
+  poolId: number,
+  walletAddress: string,
+  transactionHash: string,
+): Promise<{ success: boolean; dataSetPurchased?: any }> {
+  console.log(
+    "Confirming purchase for pool:",
+    poolId,
+    "by wallet:",
+    walletAddress,
+    "with transaction:",
+    transactionHash,
+  );
+
+  try {
+    const response = await fetchData.patch(
+      `/datasets/${poolId}/confirm-purchase`,
+      {
+        purchaserAddress: walletAddress,
+        transactionHash: transactionHash,
+      },
+    );
+
+    if (response.status === 200 && response.data.success) {
+      console.log(
+        "Purchase confirmed successfully:",
+        response.data.dataSetPurchased,
+      );
+      return {
+        success: true,
+        dataSetPurchased: response.data.dataSetPurchased,
+      };
+    } else {
+      throw new Error("Failed to confirm purchase");
+    }
+  } catch (err: any) {
+    console.error(
+      "Error confirming purchase:",
+      err.response?.data || err.message,
+    );
+    return {
+      success: false,
     };
   }
 }
