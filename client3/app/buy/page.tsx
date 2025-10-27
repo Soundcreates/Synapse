@@ -35,8 +35,8 @@ export default function BuyTokensPage() {
   const handleBuyTokens = async () => {
     setLoading(true);
     if (!walletAddress) {
-      throw new Error("Wallet not connected");
       setLoading(false);
+      throw new Error("Wallet not connected");
     }
 
     try {
@@ -59,6 +59,8 @@ export default function BuyTokensPage() {
           "There was an error processing your transaction. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 

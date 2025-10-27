@@ -1,67 +1,65 @@
-"use client"
+"use client";
 
-import React from "react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { useToast } from "@/hooks/use-toast"
-import { uploadToIPFS } from "@/utils/IndexApi"
-import { useDataRegistry } from "../context/DataRegistryContext"
-import { useWallet } from "../context/WalletContext"
+import React from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { uploadToIPFS } from "@/utils/IndexApi";
+import { useDataRegistry } from "../context/DataRegistryContext";
+import { useWallet } from "../context/WalletContext";
 
 //importing ethers
 import { ethers } from "ethers";
-import { fetchData } from "@/utils/baseUrl"
-
+import { fetchData } from "@/utils/baseUrl";
 
 type dataSetBackendPayload = {
-  name: string,
-  blockchain_pool_id: string | number | null | undefined,
-  description?: string,
-  ipfs_hash: string,
-  file_size: number,
-  file_type: string,
-  owner_address: string,
-  price: number
-}
+  name: string;
+  blockchain_pool_id: string | number | null | undefined;
+  description?: string;
+  ipfs_hash: string;
+  file_size: number;
+  file_type: string;
+  owner_address: string;
+  price: number;
+};
 
 export default function UploadPage() {
-  const { toast } = useToast()
+  const { toast } = useToast();
   const { account: walletAddress } = useWallet();
   const { createDataPool } = useDataRegistry();
-  const [file, setFile] = React.useState<File | null>(null)
-  const [name, setName] = React.useState("")
-  const [price, setPrice] = React.useState<number>(10)
-  const [loading, setLoading] = React.useState(false)
+  const [file, setFile] = React.useState<File | null>(null);
+  const [name, setName] = React.useState("");
+  const [price, setPrice] = React.useState<number>(0.01);
+  const [loading, setLoading] = React.useState(false);
 
   //grabbing users wallet address to send to backend
   const { account } = useWallet();
-
 
   //first we will send teh file to pianta
   //grab its cid
   //then create  the pool onchain
   async function onSubmit(e: React.FormEvent) {
-    e.preventDefault()
+    e.preventDefault();
     if (!file) {
       toast({
         title: "Select a file",
         description: "Please choose a file to upload.",
-        variant: "destructive"
-      })
-      return
+        variant: "destructive",
+      });
+      return;
     }
 
     if (!name.trim()) {
       toast({
         title: "Dataset name required",
         description: "Please provide a name for your dataset.",
-        variant: "destructive"
-      })
-      return
+        variant: "destructive",
+      });
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
       //uploading the actual file to ipfs
       console.log("Starting file upload to IPFS...");
@@ -78,11 +76,11 @@ export default function UploadPage() {
       toast({
         title: "File uploaded to IPFS",
         description: "Your file has been successfully uploaded to IPFS.",
-      })
+      });
 
-      const owner = walletAddress ?? "anonymous"
+      const owner = walletAddress ?? "anonymous";
 
-      //creating the metadata object 
+      //creating the metadata object
       const metadata = {
         name: name,
         description: `Dataset: ${name}`,
@@ -91,10 +89,14 @@ export default function UploadPage() {
         fileType: file.type,
         owner: owner,
         cid: dataCid,
-      }
+      };
 
-      const metadataBlob = new Blob([JSON.stringify(metadata)], { type: "application/json" });
-      const metadataFile = new File([metadataBlob], "metadata.json", { type: "application/json" });
+      const metadataBlob = new Blob([JSON.stringify(metadata)], {
+        type: "application/json",
+      });
+      const metadataFile = new File([metadataBlob], "metadata.json", {
+        type: "application/json",
+      });
       const metadataUploadResult = await uploadToIPFS(metadataFile);
       const metadataHash = metadataUploadResult.cid;
 
@@ -114,36 +116,46 @@ export default function UploadPage() {
         file_size: file.size,
         file_type: file.type,
         owner_address: account || "anonymous",
-        price: price
-      }
-      console.log("Contacting the backend to create dataset record:", backendPayload);
-      const backendResponse = await fetchData.post('/datasets', backendPayload);
+        price: price,
+      };
+      console.log(
+        "Contacting the backend to create dataset record:",
+        backendPayload,
+      );
+      const backendResponse = await fetchData.post("/datasets", backendPayload);
 
       if (!backendResponse || backendResponse.status !== 201) {
         throw new Error("Failed to create dataset in database");
       }
 
-      const databaseId = backendResponse.data.data?.id || backendResponse.data.id; // Handle different response formats
+      const databaseId =
+        backendResponse.data.data?.id || backendResponse.data.id; // Handle different response formats
       console.log("Dataset created in database with ID:", databaseId);
 
-
       // 4. Create pool on blockchain
-      const pool = await createDataPool(dataCid, metadataHash, price.toString());
+      const pool = await createDataPool(
+        dataCid,
+        metadataHash,
+        price.toString(),
+      );
       console.log("Pool id has been grabbed: ", pool?.poolId);
 
       if (pool && pool.success && pool.poolId) {
         // 5. Update database record with blockchain pool ID
-        const updateResponse = await fetchData.patch(`/datasets/${databaseId}`, {
-          blockchain_pool_id: pool.poolId,
-          tx_hash: pool.tx_hash
-        });
+        const updateResponse = await fetchData.patch(
+          `/datasets/${databaseId}`,
+          {
+            blockchain_pool_id: pool.poolId,
+            tx_hash: pool.tx_hash,
+          },
+        );
 
         if (updateResponse && updateResponse.status === 200) {
           console.log("Backend dataset has been updated!");
           toast({
             title: "Dataset Created Successfully!",
             description: `"${name}" uploaded with Database ID: ${databaseId}, Blockchain Pool ID: ${pool.poolId}`,
-          })
+          });
           window.location.href = "/dashboard";
         }
       } else {
@@ -151,28 +163,31 @@ export default function UploadPage() {
         toast({
           title: "Partial Success",
           description: `Dataset saved to database (ID: ${databaseId}) but blockchain creation failed. You can retry later.`,
-          variant: "destructive"
-        })
+          variant: "destructive",
+        });
       }
 
-      setFile(null)
-      setName("")
-      setPrice(10)
+      setFile(null);
+      setName("");
+      setPrice(0.01);
     } catch (err: any) {
-      console.error("Upload error:", err)
+      console.error("Upload error:", err);
       toast({
         title: "Upload failed",
-        description: err?.message || "Something went wrong while uploading your dataset",
-        variant: "destructive"
-      })
+        description:
+          err?.message || "Something went wrong while uploading your dataset",
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="mb-6 text-3xl font-semibold animate-fade-up">Upload Dataset</h1>
+      <h1 className="mb-6 text-3xl font-semibold animate-fade-up">
+        Upload Dataset
+      </h1>
 
       <Card className="animate-fade-up animation-delay-150">
         <CardContent className="p-6">
@@ -198,7 +213,10 @@ export default function UploadPage() {
 
             <div className="grid gap-2">
               <label className="text-sm font-medium">File</label>
-              <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+              <Input
+                type="file"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+              />
             </div>
 
             <div className="pt-2">
@@ -211,8 +229,9 @@ export default function UploadPage() {
       </Card>
 
       <p className="mt-4 text-sm text-muted-foreground animate-fade animation-delay-300">
-        This is a simulation. Files are not actually uploaded; actions use mocked async APIs.
+        This is a simulation. Files are not actually uploaded; actions use
+        mocked async APIs.
       </p>
     </div>
-  )
+  );
 }

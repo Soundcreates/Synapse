@@ -152,10 +152,12 @@ export const DataRegistryContextProvider = ({
     }
 
     try {
+      //first we convert price to wei
+      const priceInWei = ethers.parseEther(pricePerAccess);
       const tx = await contract.contractInstance.createDataPool(
         ipfsHash,
         metaDataHash,
-        ethers.parseEther(pricePerAccess),
+        priceInWei,
       );
 
       toast({
