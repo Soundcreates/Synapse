@@ -12,7 +12,7 @@ const app = express();
 // CORS configuration - must be before other middleware
 const allowedOrigins = [
   "http://localhost:3000",
-  "http://localhost:3001",
+
   "http://localhost:5173",
   "http://localhost:5000",
   "https://synapse-dusky.vercel.app/",
@@ -35,7 +35,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
     exposedHeaders: ["Content-Range", "X-Content-Range"],
     maxAge: 86400, // 24 hours
-  })
+  }),
 );
 
 app.use(express.json({ limit: "50mb" }));
@@ -46,7 +46,7 @@ app.use((req, res, next) => {
   console.log(
     `${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${
       req.get("Origin") || "No Origin"
-    }`
+    }`,
   );
   next();
 });

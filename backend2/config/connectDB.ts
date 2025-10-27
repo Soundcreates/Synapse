@@ -11,7 +11,7 @@ if (!process.env.DATABASE_URL) {
   console.log("   - NODE_ENV:", process.env.NODE_ENV);
   console.log(
     "   - DATABASE_URL:",
-    process.env.DATABASE_URL ? "SET" : "NOT SET"
+    process.env.DATABASE_URL ? "SET" : "NOT SET",
   );
   throw new Error("DATABASE_URL is required");
 }
@@ -19,12 +19,23 @@ if (!process.env.DATABASE_URL) {
 console.log("🔍 DATABASE_URL loaded:", "✅ Yes");
 
 // Create connection pool
+// const pool = new Pool({
+//   connectionString: process.env.DATABASE_URL,
+//   ssl:
+//     process.env.NODE_ENV === "production"
+//       ? { rejectUnauthorized: false }
+//       : false,
+// });
+// trying the manual way ( no connection string)
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false }
-      : false,
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port:
+    typeof process.env.DB_PORT === "string"
+      ? parseInt(process.env.DB_PORT)
+      : 5432,
 });
 
 // Test connection function
