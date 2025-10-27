@@ -308,11 +308,11 @@ export const TokenMarketPlaceProvider = ({
         const balanceWei = await token.balanceOf(receiverAddress);
         console.log("Balance in wei:", balanceWei.toString());
 
-        const balanceEther = ethers.formatEther(balanceWei);
-        console.log("Balance in ether:", balanceEther);
+        const balanceFormatted = ethers.formatUnits(balanceWei, 18);
+        console.log("Balance in ether:", balanceFormatted);
 
-        setBalance(balanceEther);
-        return balanceEther;
+        setBalance(balanceFormatted);
+        return balanceFormatted;
       } catch (balanceErr: any) {
         console.error("Balance call failed:", balanceErr);
 
@@ -402,7 +402,7 @@ export const TokenMarketPlaceProvider = ({
       const mkp = mkpContract.contractInstance;
 
       const tokenAmount = BigInt(amount);
-      // 1 SynTK = 1e14 wei (0.0001 ETH), so cost = amount * 1e14 (as per my calculation) (nerd)
+      // 1 SynTK = 1e14 wei (0.0001 ETH), cost = amount * 1e14
       const costInWei = BigInt(amount) * BigInt("100000000000000"); // 1e14 wei per token
       const cost = costInWei;
 
@@ -417,7 +417,7 @@ export const TokenMarketPlaceProvider = ({
 
       toast({
         title: "Tokens Purchased",
-        description: `Successfully purchased ${amount} SynTK tokens for ${ethers.formatEther(cost.toString())} ETH (${amount * 0.0001} ETH).`,
+        description: `Successfully purchased ${amount} SynTK tokens for ${ethers.formatEther(cost.toString())} ETH.`,
       });
 
       // this to update the balance right after the user purchases, without having to reload
@@ -444,7 +444,7 @@ export const TokenMarketPlaceProvider = ({
       const balance = await tokenContract.contractInstance.balanceOf(
         mkpContract.address,
       );
-      return ethers.formatEther(balance);
+      return ethers.formatUnits(balance, 18);
     } catch (err) {
       console.error("Error fetching contract balance:", err);
       return "0";

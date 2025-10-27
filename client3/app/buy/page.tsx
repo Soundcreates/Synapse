@@ -40,7 +40,16 @@ export default function BuyTokensPage() {
     }
 
     try {
-      const tokenAmount = amount;
+      const tokenAmount = parseInt(amount);
+      if (isNaN(tokenAmount) || tokenAmount <= 0) {
+        toast({
+          title: "Invalid Amount",
+          description: "Please enter a valid positive number of tokens.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
       await buyTokens(tokenAmount, walletAddress);
     } catch (err) {
       console.error("Error buying tokens:", err);
@@ -90,8 +99,8 @@ export default function BuyTokensPage() {
                 placeholder="Enter amount (e.g., 100)"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.toString())}
-                min="0"
-                step="0.1"
+                min="1"
+                step="1"
               />
             </div>
 
@@ -107,7 +116,7 @@ export default function BuyTokensPage() {
                   Estimated cost:
                 </span>
                 <span className="font-medium">
-                  {amount ? `${parseFloat(amount) * 0.0001} ETH` : "0 ETH"}
+                  {amount ? `${(parseInt(amount) || 0) * 0.0001} ETH` : "0 ETH"}
                 </span>
               </div>
             </div>

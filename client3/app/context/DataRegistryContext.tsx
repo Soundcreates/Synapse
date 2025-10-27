@@ -222,7 +222,7 @@ export const DataRegistryContextProvider = ({
         description: "Please wait for the contract to initialize.",
         variant: "destructive",
       });
-      return null;
+      return false;
     }
 
     try {

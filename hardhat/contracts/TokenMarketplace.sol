@@ -7,10 +7,10 @@ interface IToken {
 }
 
 contract TokenMarketplace {
-    IToken public token; 
+    IToken public token;
     address public owner;
 
-    // Defining the token price (u get the math gng)
+    // Token price: 0.0001 ETH per token (1e14 wei per token)
     uint256 public constant TOKEN_PRICE = 1e14;
 
     constructor(address _owner) {
@@ -33,16 +33,18 @@ contract TokenMarketplace {
 
     // Buy tokens with ETH
     function buyTokens(uint256 _tokenAmount, address _receiver) external payable {
+        // Convert token amount to wei (tokens have 18 decimals)
+        uint256 tokenAmountInWei = _tokenAmount * 1e18;
         uint256 cost = _tokenAmount * TOKEN_PRICE;
 
         require(msg.value == cost, "Incorrect ETH sent");
-        require(token.balanceOf(address(this)) >= _tokenAmount, "Not enough tokens in contract");
+        require(token.balanceOf(address(this)) >= tokenAmountInWei, "Not enough tokens in contract");
 
-        // Transfer tokens to buyer
-        bool success = token.transfer(_receiver, _tokenAmount);
+        // Transfer tokens to buyer (in wei units)
+        bool success = token.transfer(_receiver, tokenAmountInWei);
         require(success, "Token transfer failed");
 
-        emit TokenPurchased(_tokenAmount, _receiver);
+        emit TokenPurchased(tokenAmountInWei, _receiver);
     }
 
     // Withdraw all ETH from the contract
