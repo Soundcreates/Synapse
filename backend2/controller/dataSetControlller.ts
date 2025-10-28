@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { eq, ilike, desc, and } from "drizzle-orm";
+import { eq, ilike, desc, and, isNotNull } from "drizzle-orm";
 import { db } from "../config/connectDB";
 import {
   datasets,
@@ -305,6 +305,20 @@ export const confirmPurchase = async (
   }
 };
 
+// Helper function to get next available blockchain_pool_id
+const getNextBlockchainPoolId = async (): Promise<number> => {
+  const lastDataset = await db
+    .select({ blockchain_pool_id: datasets.blockchain_pool_id })
+    .from(datasets)
+    .where(isNotNull(datasets.blockchain_pool_id))
+    .orderBy(desc(datasets.blockchain_pool_id))
+    .limit(1);
+
+  return lastDataset.length > 0
+    ? (lastDataset[0].blockchain_pool_id || 0) + 1
+    : 1;
+};
+
 // Add update function for blockchain ID
 export const updateDataSet = async (
   req: Request,
@@ -316,6 +330,28 @@ export const updateDataSet = async (
   try {
     if (!id || isNaN(Number(id))) {
       return res.status(400).json({ message: "Invalid dataset ID" });
+    }
+
+    // If blockchain_pool_id is being updated, handle it carefully
+    if (
+      updates.blockchain_pool_id !== undefined &&
+      updates.blockchain_pool_id !== null
+    ) {
+      // Check if the provided blockchain_pool_id already exists for a different dataset
+      const existingDataset = await db
+        .select()
+        .from(datasets)
+        .where(eq(datasets.blockchain_pool_id, updates.blockchain_pool_id))
+        .limit(1);
+
+      if (existingDataset.length > 0 && existingDataset[0].id !== Number(id)) {
+        // Generate a new unique blockchain_pool_id instead of rejecting
+        const nextPoolId = await getNextBlockchainPoolId();
+        updates.blockchain_pool_id = nextPoolId;
+        console.log(
+          `Blockchain pool ID ${req.body.blockchain_pool_id} already exists, assigned new ID: ${nextPoolId}`,
+        );
+      }
     }
 
     const [updatedDataSet] = await db
@@ -337,6 +373,43 @@ export const updateDataSet = async (
     });
   } catch (error: any) {
     console.error("Error updating dataset:", error);
+
+    // Handle specific constraint violation errors
+    if (
+      error.code === "23505" &&
+      error.constraint === "datasets_blockchain_pool_id_unique"
+    ) {
+      try {
+        // Retry with a new blockchain_pool_id
+        const nextPoolId = await getNextBlockchainPoolId();
+        const retryUpdates = { ...updates, blockchain_pool_id: nextPoolId };
+
+        const [retryUpdatedDataSet] = await db
+          .update(datasets)
+          .set({
+            ...retryUpdates,
+            updated_at: new Date(),
+          })
+          .where(eq(datasets.id, Number(id)))
+          .returning();
+
+        console.log(
+          `Retry successful with new blockchain_pool_id: ${nextPoolId}`,
+        );
+
+        return res.status(200).json({
+          success: true,
+          data: retryUpdatedDataSet,
+          message: `Dataset updated with new blockchain pool ID: ${nextPoolId}`,
+        });
+      } catch (retryError: any) {
+        console.error("Retry failed:", retryError);
+        return res.status(500).json({
+          message: "Failed to update dataset even after retry",
+        });
+      }
+    }
+
     return res.status(500).json({
       message: error.message || "Failed to update dataset",
     });

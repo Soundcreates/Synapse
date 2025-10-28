@@ -11,7 +11,8 @@
     "clear-db": "ts-node clearDatabase.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "migrate": "ts-node runMigrations.ts"
   },
   "keywords": [],
   "author": "",

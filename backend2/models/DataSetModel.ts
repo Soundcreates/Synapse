@@ -14,7 +14,7 @@ export const datasets = pgTable("datasets", {
   description: text("description"),
   ipfs_hash: varchar("ipfs_hash", { length: 100 }).notNull(),
   file_size: integer("file_size").notNull(),
-  file_type: varchar("file_type", { length: 50 }),
+  file_type: varchar("file_type", { length: 1000 }),
   owner_address: varchar("owner_address", { length: 42 }).notNull(),
   tx_hash: varchar("tx_hash", { length: 66 }),
   price: integer("price").notNull(),
