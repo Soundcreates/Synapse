@@ -30,7 +30,13 @@ export default function BuyTokensPage() {
 
   const { toast } = useToast();
 
-  const { buyTokens, balance } = useMkp();
+  const mkpContext = useMkp();
+
+  if (!mkpContext) {
+    throw new Error("useMkp must be used within a TokenMarketPlaceProvider");
+  }
+
+  const { buyTokens, balance } = mkpContext;
 
   const handleBuyTokens = async () => {
     setLoading(true);

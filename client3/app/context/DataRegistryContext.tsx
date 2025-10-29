@@ -265,22 +265,34 @@ export const DataRegistryContextProvider = ({
     poolId: number | BigInt,
   ): Promise<any> => {
     if (!contract.contractInstance) {
+      const error = new Error(
+        "Contract not initialized. Please wait for the contract to initialize.",
+      );
       toast({
         title: "Contract Not Initialized",
         description: "Please wait for the contract to initialize.",
         variant: "destructive",
       });
-      return false;
+      throw error;
     }
 
     try {
       // First get the pool data to know the price
       const poolData = await contract.contractInstance.getDataPool(poolId);
+
+      if (!poolData) {
+        throw new Error("Failed to get pool data");
+      }
+
       const pricePerAccess = poolData[3]; // pricePerAccess is the 4th element
 
       const tx = await contract.contractInstance.purchaseDataAccess(poolId, {
         value: pricePerAccess,
       });
+
+      if (!tx) {
+        throw new Error("Transaction failed to execute");
+      }
 
       toast({
         title: "Transaction Submitted",
@@ -289,7 +301,6 @@ export const DataRegistryContextProvider = ({
 
       return tx;
     } catch (err: any) {
-      console.error("Error purchasing data access:", err);
       console.error("Error purchasing data access:", err);
       throw err;
     }

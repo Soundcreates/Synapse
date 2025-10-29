@@ -11,10 +11,10 @@ import {
   DataPool,
 } from "@/utils/IndexApi";
 
-import { useWallet } from "../context/WalletContext";
 import { useMkp } from "../context/TokenMarketplaceContext";
 import { useEffect, useState } from "react";
 import { useDataRegistry } from "../context/DataRegistryContext";
+import { useWallet } from "../context/WalletContext";
 
 export default function MarketplacePage() {
   const { account: walletAddress } = useWallet();
@@ -51,6 +51,16 @@ export default function MarketplacePage() {
   async function onPurchase(poolId: number) {
     console.log("Starting purchase process for dataset ID:", poolId);
 
+    // Check if wallet is connected
+    if (!walletAddress || walletAddress.trim() === "") {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to purchase datasets.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Prevent multiple simultaneous purchases of the same dataset
     if (purchasingIds.has(poolId)) {
       toast({
@@ -67,7 +77,7 @@ export default function MarketplacePage() {
     try {
       // Step 1: Get blockchain pool ID without updating database
       console.log("Getting blockchain pool ID from backend...");
-      const poolIdResponse = await getBlockchainPoolId(poolId, walletAddress);
+      const poolIdResponse = await getBlockchainPoolId(poolId, walletAddress!);
       console.log("Pool ID response:", poolIdResponse);
 
       if (!poolIdResponse || !poolIdResponse.success) {
@@ -75,6 +85,11 @@ export default function MarketplacePage() {
       }
 
       const blockchain_pool_id = poolIdResponse.blockchain_pool_id;
+
+      if (!blockchain_pool_id || blockchain_pool_id === 0) {
+        throw new Error("Invalid blockchain pool ID received");
+      }
+
       console.log("blockchain-pool-id:", blockchain_pool_id);
 
       // Step 2: Execute blockchain transaction
@@ -123,7 +138,7 @@ export default function MarketplacePage() {
       console.log("Confirming purchase in backend...");
       const confirmResponse = await confirmPurchase(
         poolId,
-        walletAddress,
+        walletAddress!,
         transactionHash,
       );
 
@@ -139,9 +154,14 @@ export default function MarketplacePage() {
         });
 
         // Refresh the datasets to show updated purchase status
-        const response = await getMarketplace();
-        if (response.success === true) {
-          setDataSets(response.dataSetsList);
+        try {
+          const response = await getMarketplace();
+          if (response && response.success === true && response.dataSetsList) {
+            setDataSets(response.dataSetsList);
+          }
+        } catch (refreshError) {
+          console.warn("Failed to refresh marketplace data:", refreshError);
+          // Don't throw here as the purchase was successful
         }
       } else {
         throw new Error("Failed to confirm purchase in database");
