@@ -6,6 +6,7 @@ import {
   getBlockchainPoolId,
   confirmPurchase,
   updateDataSet,
+  checkAndFixBlockchainPools,
 } from "../controller/dataSetControlller";
 
 const router = Router();
@@ -18,5 +19,6 @@ router.get("/datasets/:id", getDataSetByIdOrOwner);
 router.patch("/datasets/:id", updateDataSet);
 router.post("/datasets/:dataSetId/get-pool-id", getBlockchainPoolId);
 router.patch("/datasets/:dataSetId/confirm-purchase", confirmPurchase);
+router.post("/datasets/validate-blockchain-pools", checkAndFixBlockchainPools);
 
 export default router;

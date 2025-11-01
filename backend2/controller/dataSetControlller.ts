@@ -7,6 +7,7 @@ import {
   CreateDataSetInput,
   NewDataSet,
 } from "../models/DataSetModel";
+import { ethers } from "ethers";
 
 export const createDataSet = async (
   req: Request,
@@ -232,6 +233,161 @@ export const getBlockchainPoolId = async (
     return res.status(500).json({
       success: false,
       message: err.message || "error while getting blockchain pool id",
+    });
+  }
+};
+
+// Add function to check and fix blockchain pool status
+export const checkAndFixBlockchainPools = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    console.log("Starting blockchain pool validation and fix process...");
+
+    // Get all datasets from database
+    const allDatasets = await db.select().from(datasets);
+
+    if (!allDatasets || allDatasets.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No datasets found to validate",
+        fixed: 0,
+        total: 0,
+      });
+    }
+
+    // Contract details for validation
+    const contractAddress = "0x2B800Ea5d5114e09c25344A884624ddf9ca570d2";
+    const contractAbi = [
+      "function getDataPool(uint256 _poolId) external view returns(address creator, string memory ipfsHash, string memory metadataHash, uint256 pricePerAccess, uint256 totalContributors, bool isActive)",
+      "function nextPoolId() external view returns(uint256)",
+    ];
+
+    let provider;
+    let contract;
+
+    try {
+      // Try to connect to blockchain (using Sepolia testnet)
+      provider = new ethers.JsonRpcProvider(
+        "https://sepolia.infura.io/v3/YOUR_INFURA_KEY",
+      );
+      contract = new ethers.Contract(contractAddress, contractAbi, provider);
+    } catch (error) {
+      console.log(
+        "Blockchain connection failed, proceeding with database-only validation",
+      );
+
+      // Just reset datasets with null blockchain_pool_id for now
+      const datasetsToFix = allDatasets.filter(
+        (dataset) =>
+          dataset.blockchain_pool_id === null ||
+          dataset.blockchain_pool_id === undefined,
+      );
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Blockchain connection unavailable, found datasets needing pool creation",
+        needsPoolCreation: datasetsToFix.length,
+        total: allDatasets.length,
+        datasetsNeedingPools: datasetsToFix.map((d) => ({
+          id: d.id,
+          name: d.name,
+          owner_address: d.owner_address,
+        })),
+      });
+    }
+
+    let fixedCount = 0;
+    const problematicDatasets = [];
+
+    for (const dataset of allDatasets) {
+      try {
+        if (
+          dataset.blockchain_pool_id === null ||
+          dataset.blockchain_pool_id === undefined
+        ) {
+          problematicDatasets.push({
+            id: dataset.id,
+            name: dataset.name,
+            issue: "No blockchain pool ID",
+            action: "Needs pool creation",
+          });
+          continue;
+        }
+
+        // Check if pool exists and is active on blockchain
+        try {
+          const poolData = await contract.getDataPool(
+            dataset.blockchain_pool_id,
+          );
+          const isActive = poolData[5]; // isActive is the 6th element
+
+          if (!isActive) {
+            // Pool exists but is inactive - reset the blockchain_pool_id
+            await db
+              .update(datasets)
+              .set({
+                blockchain_pool_id: null,
+                updated_at: new Date(),
+              })
+              .where(eq(datasets.id, dataset.id));
+
+            fixedCount++;
+            problematicDatasets.push({
+              id: dataset.id,
+              name: dataset.name,
+              issue: "Pool inactive",
+              action: "Reset to null for recreation",
+            });
+          }
+        } catch (poolError: any) {
+          // Pool doesn't exist or other error - reset the blockchain_pool_id
+          if (
+            poolError.message.includes("revert") ||
+            poolError.message.includes("invalid")
+          ) {
+            await db
+              .update(datasets)
+              .set({
+                blockchain_pool_id: null,
+                updated_at: new Date(),
+              })
+              .where(eq(datasets.id, dataset.id));
+
+            fixedCount++;
+            problematicDatasets.push({
+              id: dataset.id,
+              name: dataset.name,
+              issue: "Pool not found on blockchain",
+              action: "Reset to null for recreation",
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`Error checking dataset ${dataset.id}:`, error);
+        problematicDatasets.push({
+          id: dataset.id,
+          name: dataset.name,
+          issue: "Validation error",
+          action: "Manual review needed",
+        });
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Blockchain pool validation completed",
+      total: allDatasets.length,
+      fixed: fixedCount,
+      problematicDatasets: problematicDatasets,
+    });
+  } catch (error: any) {
+    console.error("Error in blockchain pool validation:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to validate blockchain pools",
     });
   }
 };

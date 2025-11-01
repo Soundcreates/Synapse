@@ -252,6 +252,45 @@ export async function getBlockchainPoolId(
   }
 }
 
+export async function validateBlockchainPools(): Promise<{
+  success: boolean;
+  message: string;
+  fixed?: number;
+  total?: number;
+  problematicDatasets?: any[];
+}> {
+  console.log("Starting blockchain pool validation...");
+
+  try {
+    const response = await fetchData.post(
+      "/datasets/validate-blockchain-pools",
+    );
+
+    if (response.status === 200 && response.data.success) {
+      console.log("Blockchain pool validation completed:", response.data);
+      return {
+        success: true,
+        message: response.data.message,
+        fixed: response.data.fixed,
+        total: response.data.total,
+        problematicDatasets: response.data.problematicDatasets,
+      };
+    } else {
+      throw new Error("Failed to validate blockchain pools");
+    }
+  } catch (err: any) {
+    console.error(
+      "Error validating blockchain pools:",
+      err.response?.data || err.message,
+    );
+    return {
+      success: false,
+      message:
+        err.response?.data?.message || "Failed to validate blockchain pools",
+    };
+  }
+}
+
 export async function confirmPurchase(
   poolId: number,
   walletAddress: string,

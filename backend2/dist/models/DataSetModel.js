@@ -10,7 +10,7 @@ exports.datasets = (0, pg_core_1.pgTable)("datasets", {
     description: (0, pg_core_1.text)("description"),
     ipfs_hash: (0, pg_core_1.varchar)("ipfs_hash", { length: 100 }).notNull(),
     file_size: (0, pg_core_1.integer)("file_size").notNull(),
-    file_type: (0, pg_core_1.varchar)("file_type", { length: 50 }),
+    file_type: (0, pg_core_1.varchar)("file_type", { length: 1000 }),
     owner_address: (0, pg_core_1.varchar)("owner_address", { length: 42 }).notNull(),
     tx_hash: (0, pg_core_1.varchar)("tx_hash", { length: 66 }),
     price: (0, pg_core_1.integer)("price").notNull(),

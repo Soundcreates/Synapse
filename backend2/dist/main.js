@@ -14,7 +14,6 @@ const app = (0, express_1.default)();
 // CORS configuration - must be before other middleware
 const allowedOrigins = [
     "http://localhost:3000",
-    "http://localhost:3001",
     "http://localhost:5173",
     "http://localhost:5000",
     "https://synapse-dusky.vercel.app/",

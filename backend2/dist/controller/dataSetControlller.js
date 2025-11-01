@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateDataSet = exports.confirmPurchase = exports.getBlockchainPoolId = exports.getDataSetByIdOrOwner = exports.getDataSets = exports.createDataSet = void 0;
+exports.updateDataSet = exports.confirmPurchase = exports.checkAndFixBlockchainPools = exports.getBlockchainPoolId = exports.getDataSetByIdOrOwner = exports.getDataSets = exports.createDataSet = void 0;
 const drizzle_orm_1 = require("drizzle-orm");
 const connectDB_1 = require("../config/connectDB");
 const DataSetModel_1 = require("../models/DataSetModel");
+const ethers_1 = require("ethers");
 const createDataSet = async (req, res) => {
     console.log("Welcome to create dataset factory");
     const input = req.body;
@@ -190,6 +191,134 @@ const getBlockchainPoolId = async (req, res) => {
     }
 };
 exports.getBlockchainPoolId = getBlockchainPoolId;
+// Add function to check and fix blockchain pool status
+const checkAndFixBlockchainPools = async (req, res) => {
+    try {
+        console.log("Starting blockchain pool validation and fix process...");
+        // Get all datasets from database
+        const allDatasets = await connectDB_1.db.select().from(DataSetModel_1.datasets);
+        if (!allDatasets || allDatasets.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: "No datasets found to validate",
+                fixed: 0,
+                total: 0,
+            });
+        }
+        // Contract details for validation
+        const contractAddress = "0x2B800Ea5d5114e09c25344A884624ddf9ca570d2";
+        const contractAbi = [
+            "function getDataPool(uint256 _poolId) external view returns(address creator, string memory ipfsHash, string memory metadataHash, uint256 pricePerAccess, uint256 totalContributors, bool isActive)",
+            "function nextPoolId() external view returns(uint256)",
+        ];
+        let provider;
+        let contract;
+        try {
+            // Try to connect to blockchain (using Sepolia testnet)
+            provider = new ethers_1.ethers.JsonRpcProvider("https://sepolia.infura.io/v3/YOUR_INFURA_KEY");
+            contract = new ethers_1.ethers.Contract(contractAddress, contractAbi, provider);
+        }
+        catch (error) {
+            console.log("Blockchain connection failed, proceeding with database-only validation");
+            // Just reset datasets with null blockchain_pool_id for now
+            const datasetsToFix = allDatasets.filter((dataset) => dataset.blockchain_pool_id === null ||
+                dataset.blockchain_pool_id === undefined);
+            return res.status(200).json({
+                success: true,
+                message: "Blockchain connection unavailable, found datasets needing pool creation",
+                needsPoolCreation: datasetsToFix.length,
+                total: allDatasets.length,
+                datasetsNeedingPools: datasetsToFix.map((d) => ({
+                    id: d.id,
+                    name: d.name,
+                    owner_address: d.owner_address,
+                })),
+            });
+        }
+        let fixedCount = 0;
+        const problematicDatasets = [];
+        for (const dataset of allDatasets) {
+            try {
+                if (dataset.blockchain_pool_id === null ||
+                    dataset.blockchain_pool_id === undefined) {
+                    problematicDatasets.push({
+                        id: dataset.id,
+                        name: dataset.name,
+                        issue: "No blockchain pool ID",
+                        action: "Needs pool creation",
+                    });
+                    continue;
+                }
+                // Check if pool exists and is active on blockchain
+                try {
+                    const poolData = await contract.getDataPool(dataset.blockchain_pool_id);
+                    const isActive = poolData[5]; // isActive is the 6th element
+                    if (!isActive) {
+                        // Pool exists but is inactive - reset the blockchain_pool_id
+                        await connectDB_1.db
+                            .update(DataSetModel_1.datasets)
+                            .set({
+                            blockchain_pool_id: null,
+                            updated_at: new Date(),
+                        })
+                            .where((0, drizzle_orm_1.eq)(DataSetModel_1.datasets.id, dataset.id));
+                        fixedCount++;
+                        problematicDatasets.push({
+                            id: dataset.id,
+                            name: dataset.name,
+                            issue: "Pool inactive",
+                            action: "Reset to null for recreation",
+                        });
+                    }
+                }
+                catch (poolError) {
+                    // Pool doesn't exist or other error - reset the blockchain_pool_id
+                    if (poolError.message.includes("revert") ||
+                        poolError.message.includes("invalid")) {
+                        await connectDB_1.db
+                            .update(DataSetModel_1.datasets)
+                            .set({
+                            blockchain_pool_id: null,
+                            updated_at: new Date(),
+                        })
+                            .where((0, drizzle_orm_1.eq)(DataSetModel_1.datasets.id, dataset.id));
+                        fixedCount++;
+                        problematicDatasets.push({
+                            id: dataset.id,
+                            name: dataset.name,
+                            issue: "Pool not found on blockchain",
+                            action: "Reset to null for recreation",
+                        });
+                    }
+                }
+            }
+            catch (error) {
+                console.error(`Error checking dataset ${dataset.id}:`, error);
+                problematicDatasets.push({
+                    id: dataset.id,
+                    name: dataset.name,
+                    issue: "Validation error",
+                    action: "Manual review needed",
+                });
+            }
+        }
+        return res.status(200).json({
+            success: true,
+            message: "Blockchain pool validation completed",
+            total: allDatasets.length,
+            fixed: fixedCount,
+            problematicDatasets: problematicDatasets,
+        });
+    }
+    catch (error) {
+        console.error("Error in blockchain pool validation:", error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to validate blockchain pools",
+        });
+    }
+};
+exports.checkAndFixBlockchainPools = checkAndFixBlockchainPools;
 const confirmPurchase = async (req, res) => {
     const { dataSetId } = req.params;
     const { purchaserAddress, transactionHash } = req.body;
@@ -247,6 +376,18 @@ const confirmPurchase = async (req, res) => {
     }
 };
 exports.confirmPurchase = confirmPurchase;
+// Helper function to get next available blockchain_pool_id
+const getNextBlockchainPoolId = async () => {
+    const lastDataset = await connectDB_1.db
+        .select({ blockchain_pool_id: DataSetModel_1.datasets.blockchain_pool_id })
+        .from(DataSetModel_1.datasets)
+        .where((0, drizzle_orm_1.isNotNull)(DataSetModel_1.datasets.blockchain_pool_id))
+        .orderBy((0, drizzle_orm_1.desc)(DataSetModel_1.datasets.blockchain_pool_id))
+        .limit(1);
+    return lastDataset.length > 0
+        ? (lastDataset[0].blockchain_pool_id || 0) + 1
+        : 1;
+};
 // Add update function for blockchain ID
 const updateDataSet = async (req, res) => {
     const { id } = req.params;
@@ -254,6 +395,22 @@ const updateDataSet = async (req, res) => {
     try {
         if (!id || isNaN(Number(id))) {
             return res.status(400).json({ message: "Invalid dataset ID" });
+        }
+        // If blockchain_pool_id is being updated, handle it carefully
+        if (updates.blockchain_pool_id !== undefined &&
+            updates.blockchain_pool_id !== null) {
+            // Check if the provided blockchain_pool_id already exists for a different dataset
+            const existingDataset = await connectDB_1.db
+                .select()
+                .from(DataSetModel_1.datasets)
+                .where((0, drizzle_orm_1.eq)(DataSetModel_1.datasets.blockchain_pool_id, updates.blockchain_pool_id))
+                .limit(1);
+            if (existingDataset.length > 0 && existingDataset[0].id !== Number(id)) {
+                // Generate a new unique blockchain_pool_id instead of rejecting
+                const nextPoolId = await getNextBlockchainPoolId();
+                updates.blockchain_pool_id = nextPoolId;
+                console.log(`Blockchain pool ID ${req.body.blockchain_pool_id} already exists, assigned new ID: ${nextPoolId}`);
+            }
         }
         const [updatedDataSet] = await connectDB_1.db
             .update(DataSetModel_1.datasets)
@@ -273,6 +430,35 @@ const updateDataSet = async (req, res) => {
     }
     catch (error) {
         console.error("Error updating dataset:", error);
+        // Handle specific constraint violation errors
+        if (error.code === "23505" &&
+            error.constraint === "datasets_blockchain_pool_id_unique") {
+            try {
+                // Retry with a new blockchain_pool_id
+                const nextPoolId = await getNextBlockchainPoolId();
+                const retryUpdates = { ...updates, blockchain_pool_id: nextPoolId };
+                const [retryUpdatedDataSet] = await connectDB_1.db
+                    .update(DataSetModel_1.datasets)
+                    .set({
+                    ...retryUpdates,
+                    updated_at: new Date(),
+                })
+                    .where((0, drizzle_orm_1.eq)(DataSetModel_1.datasets.id, Number(id)))
+                    .returning();
+                console.log(`Retry successful with new blockchain_pool_id: ${nextPoolId}`);
+                return res.status(200).json({
+                    success: true,
+                    data: retryUpdatedDataSet,
+                    message: `Dataset updated with new blockchain pool ID: ${nextPoolId}`,
+                });
+            }
+            catch (retryError) {
+                console.error("Retry failed:", retryError);
+                return res.status(500).json({
+                    message: "Failed to update dataset even after retry",
+                });
+            }
+        }
         return res.status(500).json({
             message: error.message || "Failed to update dataset",
         });

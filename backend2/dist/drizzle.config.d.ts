@@ -3,7 +3,11 @@ declare const _default: {
     out: string;
     dialect: "postgresql";
     dbCredentials: {
-        url: string;
+        host: string;
+        port: number;
+        user: string;
+        password: string;
+        database: string;
     };
 };
 export default _default;

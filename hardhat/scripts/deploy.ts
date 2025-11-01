@@ -45,7 +45,7 @@ async function main() {
 
   // 3️ Deploy DataRegistry
   const DataRegistry = await ethers.getContractFactory("DataRegistry");
-  const dataRegistry = await DataRegistry.deploy(royaltyAddress);
+  const dataRegistry = await DataRegistry.deploy(royaltyAddress, tokenAddress);
   await dataRegistry.waitForDeployment();
   const dataRegistryAddress = await dataRegistry.getAddress();
   const dataRegistryData = {

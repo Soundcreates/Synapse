@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { useToast } from "@/hooks/use-toast";
 import DataRegistry from "../../contractData/DataRegistry.json";
+import { creditsToWei } from "../../utils/pricingMigration";
 
 type DataPool = {
   id?: number;
@@ -38,7 +39,10 @@ type DataRegistryContextType = {
     poolId: number,
     contributors: string[],
   ) => Promise<boolean>;
-  purchaseDataAccessFromChain: (poolId: number | BigInt) => Promise<any>;
+  purchaseDataAccessFromChain: (
+    poolId: number | BigInt,
+    buyer: String,
+  ) => Promise<any>;
 
   // View functions
   getDataPool: (poolId: number) => Promise<DataPool | null>;
@@ -152,8 +156,8 @@ export const DataRegistryContextProvider = ({
     }
 
     try {
-      //first we convert price to wei
-      const priceInWei = ethers.parseEther(pricePerAccess);
+      // Convert credits to wei using the new pricing system (1 credit = 0.001 ETH)
+      const priceInWei = creditsToWei(parseFloat(pricePerAccess));
       const tx = await contract.contractInstance.createDataPool(
         ipfsHash,
         metaDataHash,
@@ -263,6 +267,7 @@ export const DataRegistryContextProvider = ({
   // Purchase data access (note: amount is determined by the contract's pricePerAccess)
   const purchaseDataAccessFromChain = async (
     poolId: number | BigInt,
+    buyer = String,
   ): Promise<any> => {
     if (!contract.contractInstance) {
       const error = new Error(
@@ -285,10 +290,11 @@ export const DataRegistryContextProvider = ({
       }
 
       const pricePerAccess = poolData[3]; // pricePerAccess is the 4th element
-
-      const tx = await contract.contractInstance.purchaseDataAccess(poolId, {
-        value: pricePerAccess,
-      });
+      console.log("Buyer's address: ", buyer);
+      const tx = await contract.contractInstance.purchaseDataAccess(
+        poolId,
+        buyer,
+      );
 
       if (!tx) {
         throw new Error("Transaction failed to execute");

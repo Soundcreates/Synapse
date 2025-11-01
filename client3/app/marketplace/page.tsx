@@ -15,13 +15,19 @@ import { useMkp } from "../context/TokenMarketplaceContext";
 import { useEffect, useState } from "react";
 import { useDataRegistry } from "../context/DataRegistryContext";
 import { useWallet } from "../context/WalletContext";
+import { CREDIT_TO_ETH_RATIO } from "../../utils/pricingMigration";
+
+// Helper function to convert credits to ETH for display
+const creditsToEth = (credits: number) => {
+  return (credits * CREDIT_TO_ETH_RATIO).toFixed(4);
+};
 
 export default function MarketplacePage() {
   const { account: walletAddress } = useWallet();
   const [isLoading, setIsLoading] = useState<Boolean>(false);
   const [dataSets, setDataSets] = useState<DataPool[]>([]);
   const [purchasingIds, setPurchasingIds] = useState<Set<number>>(new Set());
-  const { purchaseDataAccessFromChain } = useDataRegistry();
+  const { purchaseDataAccessFromChain, getDataPool } = useDataRegistry();
 
   useEffect(() => {
     const fetcher = async () => {
@@ -48,7 +54,7 @@ export default function MarketplacePage() {
 
   const { toast } = useToast();
 
-  async function onPurchase(poolId: number) {
+  async function onPurchase(poolId: number, buyer: String) {
     console.log("Starting purchase process for dataset ID:", poolId);
 
     // Check if wallet is connected
@@ -86,15 +92,51 @@ export default function MarketplacePage() {
 
       const blockchain_pool_id = poolIdResponse.blockchain_pool_id;
 
-      if (!blockchain_pool_id || blockchain_pool_id === 0) {
-        throw new Error("Invalid blockchain pool ID received");
+      if (blockchain_pool_id === null || blockchain_pool_id === undefined) {
+        throw new Error(
+          "Dataset does not have a valid blockchain pool. Please contact the dataset owner to recreate the pool.",
+        );
       }
 
       console.log("blockchain-pool-id:", blockchain_pool_id);
 
+      // Step 1.5: Validate pool exists and is active on blockchain
+      console.log("Validating pool on blockchain...");
+      try {
+        const poolData = await getDataPool(Number(blockchain_pool_id));
+        if (!poolData) {
+          throw new Error(
+            "This dataset's blockchain pool was not found. The pool may have been deleted or never created. Please contact the dataset owner.",
+          );
+        }
+        if (!poolData.isActive) {
+          throw new Error(
+            "This dataset's blockchain pool is currently inactive. Please contact the dataset owner to reactivate it.",
+          );
+        }
+        console.log("Pool validation successful:", poolData);
+      } catch (validationError: any) {
+        console.error("Pool validation failed:", validationError);
+        // Check for specific blockchain connection errors
+        if (
+          validationError.message.includes("could not detect network") ||
+          validationError.message.includes("connection")
+        ) {
+          throw new Error(
+            "Unable to connect to blockchain. Please check your wallet connection and try again.",
+          );
+        }
+        throw new Error(
+          `Unable to validate dataset pool: ${validationError.message}`,
+        );
+      }
+
       // Step 2: Execute blockchain transaction
       console.log("Executing blockchain transaction...");
-      const purchaseTx = await purchaseDataAccessFromChain(blockchain_pool_id);
+      const purchaseTx = await purchaseDataAccessFromChain(
+        blockchain_pool_id,
+        walletAddress,
+      );
 
       if (!purchaseTx) {
         throw new Error("Blockchain transaction failed");
@@ -175,6 +217,33 @@ export default function MarketplacePage() {
       let errorDescription = "There was an error processing your purchase.";
 
       if (
+        err.message.includes("Pool is not active") ||
+        err.message.includes("inactive")
+      ) {
+        errorTitle = "Dataset Unavailable";
+        errorDescription =
+          "This dataset's blockchain pool is currently inactive. Please contact the dataset owner.";
+      } else if (
+        err.message.includes("Pool does not exist") ||
+        err.message.includes("not found")
+      ) {
+        errorTitle = "Dataset Pool Missing";
+        errorDescription =
+          "This dataset's blockchain pool could not be found. The owner may need to recreate it.";
+      } else if (
+        err.message.includes("does not have a valid blockchain pool")
+      ) {
+        errorTitle = "Pool Not Created";
+        errorDescription =
+          "This dataset doesn't have a blockchain pool yet. Please contact the dataset owner.";
+      } else if (
+        err.message.includes("blockchain connection") ||
+        err.message.includes("wallet connection")
+      ) {
+        errorTitle = "Connection Error";
+        errorDescription =
+          "Unable to connect to blockchain. Please check your wallet connection and try again.";
+      } else if (
         err.message.includes("insufficient funds") ||
         err.code === "INSUFFICIENT_FUNDS"
       ) {
@@ -235,7 +304,14 @@ export default function MarketplacePage() {
                   className="w-full rounded-md"
                 />
                 <div className="space-y-1">
-                  <h3 className="text-lg font-medium">{pool.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-medium">{pool.name}</h3>
+                    {pool.blockchain_pool_id === null && (
+                      <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
+                        Pool Missing
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     {pool.description ?? "No description provided."}
                   </p>
@@ -245,14 +321,34 @@ export default function MarketplacePage() {
                       {pool.owner_address}
                     </span>
                   </p>
+                  {pool.blockchain_pool_id !== null && (
+                    <p className="text-xs text-muted-foreground">
+                      Pool ID: {pool.blockchain_pool_id}
+                    </p>
+                  )}
                 </div>
                 <div className="mt-auto flex items-center justify-between">
-                  <span className="font-medium">{pool.price} credits</span>
+                  <div className="text-sm">
+                    <span className="font-medium">{pool.price} credits</span>
+                    <span className="text-muted-foreground ml-1">
+                      (~{creditsToEth(pool.price)} ETH)
+                    </span>
+                  </div>
                   <Button
                     onClick={() => onPurchase(pool.id)}
-                    disabled={purchasingIds.has(pool.id)}
+                    disabled={
+                      purchasingIds.has(pool.id) ||
+                      pool.blockchain_pool_id === null
+                    }
+                    variant={
+                      pool.blockchain_pool_id === null ? "secondary" : "default"
+                    }
                   >
-                    {purchasingIds.has(pool.id) ? "Purchasing..." : "Purchase"}
+                    {purchasingIds.has(pool.id)
+                      ? "Purchasing..."
+                      : pool.blockchain_pool_id === null
+                        ? "Unavailable"
+                        : "Purchase"}
                   </Button>
                 </div>
               </CardContent>

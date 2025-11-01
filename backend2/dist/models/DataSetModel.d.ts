@@ -125,7 +125,7 @@ export declare const datasets: import("drizzle-orm/pg-core").PgTableWithColumns<
             identity: undefined;
             generated: undefined;
         }, {}, {
-            length: 50;
+            length: 1000;
         }>;
         owner_address: import("drizzle-orm/pg-core").PgColumn<{
             name: "owner_address";

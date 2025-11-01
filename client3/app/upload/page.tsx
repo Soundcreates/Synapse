@@ -12,6 +12,7 @@ import { useWallet } from "../context/WalletContext";
 //importing ethers
 import { ethers } from "ethers";
 import { fetchData } from "@/utils/baseUrl";
+import { CREDIT_TO_ETH_RATIO } from "../../utils/pricingMigration";
 
 type dataSetBackendPayload = {
   name: string;
@@ -202,13 +203,18 @@ export default function UploadPage() {
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium">Price (credits)</label>
+              <label className="text-sm font-medium">
+                Price (Syn tokens)
+              </label>
               <Input
                 type="number"
-                min={0}
+                min={1}
+                step={1}
                 value={price}
                 onChange={(e) => setPrice(Number.parseFloat(e.target.value))}
+                placeholder="e.g. 2 SynTk Tokens"
               />
+
             </div>
 
             <div className="grid gap-2">

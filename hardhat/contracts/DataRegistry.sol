@@ -8,7 +8,16 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 
 import "./RoyaltyDistribution.sol";
 
+interface IToken{
+function balanceOf(address account) external view returns (uint256);
+function transfer(address to, uint256 amount) external returns (bool);
+}
+
 contract DataRegistry is Ownable, ReentrancyGuard, Pausable {
+
+    //creating the token instance
+    IToken public token;
+
 struct DataPool {
 address creator;
 string ipfsHash;
@@ -28,12 +37,13 @@ address[] contributors;
 
 
     event DataPoolCreated(uint256 indexed poolId, address indexed creator, string ipfsHash);
-    event DataPurchased(uint256 indexed poolId, address indexed buyer, uint256 amount);
+    event DataPurchased(uint256 indexed poolId, address indexed buyer, uint256 tokenAmount);
     event ContributionAdded(uint256 indexed poolId, address indexed contributor, uint256 share);
     event ContributorAssigned(uint256 indexed poolId, address indexed contributor, uint256 totalContributors); // Fixed event name and types
 
-    constructor(address payable _royaltyDistribution) Ownable(msg.sender) {
+    constructor(address payable _royaltyDistribution, address _tokenAddr) Ownable(msg.sender) {
         royaltyDistributor = RoyaltyDistribution(_royaltyDistribution);
+        token = IToken(_tokenAddr);
     }
 
     function createDataPool(
@@ -71,12 +81,14 @@ address[] contributors;
         }
     }
 
-    function purchaseDataAccess(uint256 _poolId) external payable nonReentrant {
+    function purchaseDataAccess(uint256 _poolId, address _buyer) external payable nonReentrant {
         DataPool storage pool = dataPools[_poolId];
         require(pool.isActive, "Pool is not active");
-        require(msg.value >= pool.pricePerAccess, "Please provide the specified amount");
+        require(_buyer != pool.creator, "Creator cannot purchase their own data");
+        require(token.balanceOf(msg.sender) >= pool.pricePerAccess, "Insufficient token balance to purchase data access");
 
-        _distributeRoyalties(_poolId, msg.value);
+
+        _distributeRoyalties(_poolId, pool.pricePerAccess);
 
         emit DataPurchased(_poolId, msg.sender, msg.value);
     }

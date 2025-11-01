@@ -6,6 +6,12 @@ import { Card, CardContent } from "@/components/ui/card"
 
 import { getUserDashboard } from "@/utils/IndexApi"
 import { useWallet } from "../context/WalletContext"
+import { CREDIT_TO_ETH_RATIO } from "../../utils/pricingMigration";
+
+// Helper function to convert credits to ETH for display
+const creditsToEth = (credits: number) => {
+  return (credits * CREDIT_TO_ETH_RATIO).toFixed(4);
+};
 
 export default function DashboardPage() {
   const { account: walletAddress } = useWallet();
@@ -43,7 +49,7 @@ export default function DashboardPage() {
                       <div>
                         <div className="font-medium">{p.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          Price: {p.price} • IPFS: {p.ipfs_hash}
+                          Price: {p.price} credits (~{creditsToEth(p.price)} ETH) • IPFS: {p.ipfs_hash}
                         </div>
                       </div>
                       <div className="text-sm">ID: {p.id}</div>
@@ -65,7 +71,7 @@ export default function DashboardPage() {
                       <div>
                         <div className="font-medium">{p.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          Owner: {p.owner_address} • Price: {p.price}
+                          Owner: {p.owner_address} • Price: {p.price} credits (~{creditsToEth(p.price)} ETH)
                         </div>
                       </div>
                       <div className="text-sm">ID: {p.id}</div>
