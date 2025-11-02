@@ -4,7 +4,6 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { useToast } from "@/hooks/use-toast";
 import DataRegistry from "../../contractData/DataRegistry.json";
-import { creditsToWei } from "../../utils/pricingMigration";
 
 type DataPool = {
   id?: number;
@@ -39,10 +38,7 @@ type DataRegistryContextType = {
     poolId: number,
     contributors: string[],
   ) => Promise<boolean>;
-  purchaseDataAccessFromChain: (
-    poolId: number | BigInt,
-    buyer: String,
-  ) => Promise<any>;
+  purchaseDataAccessFromChain: (poolId: number | BigInt) => Promise<any>;
 
   // View functions
   getDataPool: (poolId: number) => Promise<DataPool | null>;
@@ -156,8 +152,8 @@ export const DataRegistryContextProvider = ({
     }
 
     try {
-      // Convert credits to wei using the new pricing system (1 credit = 0.001 ETH)
-      const priceInWei = creditsToWei(parseFloat(pricePerAccess));
+      // Convert SYN tokens directly to wei (1 SYN token = 1e18 wei)
+      const priceInWei = ethers.parseUnits(pricePerAccess, 18);
       const tx = await contract.contractInstance.createDataPool(
         ipfsHash,
         metaDataHash,
@@ -267,7 +263,6 @@ export const DataRegistryContextProvider = ({
   // Purchase data access (note: amount is determined by the contract's pricePerAccess)
   const purchaseDataAccessFromChain = async (
     poolId: number | BigInt,
-    buyer = String,
   ): Promise<any> => {
     if (!contract.contractInstance) {
       const error = new Error(
@@ -282,19 +277,77 @@ export const DataRegistryContextProvider = ({
     }
 
     try {
-      // First get the pool data to know the price
+      // First get the pool data to know the price and creator
       const poolData = await contract.contractInstance.getDataPool(poolId);
 
       if (!poolData) {
         throw new Error("Failed to get pool data");
       }
 
-      const pricePerAccess = poolData[3]; // pricePerAccess is the 4th element
-      console.log("Buyer's address: ", buyer);
-      const tx = await contract.contractInstance.purchaseDataAccess(
-        poolId,
-        buyer,
+      const creatorAddress = poolData[0];
+      const pricePerAccess = poolData[3]; // pricePerAccess in wei
+      console.log("Price per access (wei):", pricePerAccess.toString());
+
+      // Get signer and caller address
+      const eth = (window as any).ethereum;
+      const provider = new ethers.BrowserProvider(eth);
+      const signer = await provider.getSigner();
+      const userAddress = await signer.getAddress();
+
+      console.log("Purchase attempt - caller:", userAddress, "creator:", creatorAddress);
+      if (userAddress.toLowerCase() === String(creatorAddress).toLowerCase()) {
+        throw new Error(`Creator cannot purchase their own data. Caller: ${userAddress}, Creator: ${creatorAddress}`);
+      }
+
+      // Price is already in SYNTK token wei (1 SYNTK = 1e18 wei)
+      // No conversion needed - use the price directly
+      const tokensNeeded = BigInt(pricePerAccess.toString());
+
+      console.log("Tokens needed:", ethers.formatUnits(tokensNeeded, 18), "SYNTK");
+
+      // Import SynTK contract data and get token contract with signer
+      const SynTK = await import("../../contractData/SynTK.json");
+      const tokenContract = new ethers.Contract(
+        SynTK.address,
+        JSON.parse(SynTK.abi),
+        signer,
       );
+
+      // Check user's token balance
+      const userBalanceBN = await tokenContract.balanceOf(userAddress);
+      const userBalance = BigInt(userBalanceBN.toString());
+      console.log("User balance:", userBalance.toString());
+
+      if (userBalance < tokensNeeded) {
+        const userBalanceFormatted = ethers.formatUnits(userBalanceBN, 18);
+        const requiredFormatted = ethers.formatUnits(tokensNeeded, 18);
+        throw new Error(`Insufficient SYNTK token balance. You have ${userBalanceFormatted} SYNTK but need ${requiredFormatted} SYNTK. Please visit the Buy page to purchase more tokens.`);
+      }
+
+      // Check current allowance and approve if necessary
+      const currentAllowanceBN = await tokenContract.allowance(userAddress, contract.address);
+      const currentAllowance = BigInt(currentAllowanceBN.toString());
+      console.log("Current allowance:", currentAllowance.toString());
+
+      if (currentAllowance < tokensNeeded) {
+        toast({
+          title: "Token Approval Required",
+          description: "Approving tokens for purchase...",
+        });
+
+        const approveTx = await tokenContract.approve(contract.address, tokensNeeded);
+        console.log("Approve transaction:", approveTx.hash);
+        await approveTx.wait();
+
+        toast({
+          title: "Tokens Approved",
+          description: "Proceeding with purchase...",
+        });
+      }
+
+      // Now make the purchase using the signer-connected contract
+      const signedContract = contract.contractInstance.connect(signer);
+      const tx = await (signedContract as any).purchaseDataAccess(poolId);
 
       if (!tx) {
         throw new Error("Transaction failed to execute");
@@ -305,9 +358,30 @@ export const DataRegistryContextProvider = ({
         description: "Purchasing data access... Please wait for confirmation.",
       });
 
+      console.log("Purchase transaction:", tx.hash);
       return tx;
     } catch (err: any) {
       console.error("Error purchasing data access:", err);
+
+      // Enhanced error handling
+      if (err.message && err.message.includes("insufficient funds")) {
+        throw new Error("Insufficient funds in wallet. Please add more ETH for gas fees.");
+      } else if (err.message && err.message.includes("Insufficient SYNTK token balance")) {
+        throw err; // Re-throw our custom error
+      } else if (err.code === "ACTION_REJECTED") {
+        throw new Error("Transaction was rejected by user.");
+      } else if (err.message && err.message.includes("Creator cannot purchase")) {
+        throw new Error("Dataset creators cannot purchase their own datasets.");
+      } else if (err.message && err.message.includes("Pool is not active")) {
+        throw new Error("This dataset pool is not active.");
+      } else if (err.message && err.message.includes("execution reverted")) {
+        // Try to extract more specific error information
+        if (err.data && typeof err.data === "string" && err.data.startsWith("0xe450d38c")) {
+          throw new Error("Token transfer failed. Please ensure you have enough SYNTK tokens and try again.");
+        }
+        throw new Error("Transaction failed. Please check your token balance and allowances.");
+      }
+
       throw err;
     }
   };

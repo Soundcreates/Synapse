@@ -31,7 +31,7 @@ export default function UploadPage() {
   const { createDataPool } = useDataRegistry();
   const [file, setFile] = React.useState<File | null>(null);
   const [name, setName] = React.useState("");
-  const [price, setPrice] = React.useState<number>(0.01);
+  const [price, setPrice] = React.useState<number>(1);
   const [loading, setLoading] = React.useState(false);
 
   //grabbing users wallet address to send to backend
@@ -203,18 +203,15 @@ export default function UploadPage() {
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium">
-                Price (Syn tokens)
-              </label>
+              <label className="text-sm font-medium">Price (SYN tokens)</label>
               <Input
                 type="number"
                 min={1}
                 step={1}
                 value={price}
                 onChange={(e) => setPrice(Number.parseFloat(e.target.value))}
-                placeholder="e.g. 2 SynTk Tokens"
+                placeholder="e.g. 2 (will cost 2 SYN tokens to purchase)"
               />
-
             </div>
 
             <div className="grid gap-2">

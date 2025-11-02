@@ -11,6 +11,7 @@ import "./RoyaltyDistribution.sol";
 interface IToken{
 function balanceOf(address account) external view returns (uint256);
 function transfer(address to, uint256 amount) external returns (bool);
+function transferFrom(address from, address to, uint256 amount) external returns (bool);
 }
 
 contract DataRegistry is Ownable, ReentrancyGuard, Pausable {
@@ -33,7 +34,7 @@ address[] contributors;
 
     mapping(uint256 => DataPool) public dataPools;
     mapping(address => uint256[]) public creatorPools;
-    uint256 public nextPoolId;
+    uint256 public nextPoolId = 1;
 
 
     event DataPoolCreated(uint256 indexed poolId, address indexed creator, string ipfsHash);
@@ -54,7 +55,7 @@ address[] contributors;
         require(bytes(_ipfsHash).length > 0, "Invalid IPFS hash");
         require(_pricePerAccess > 0, "Price must be greater than zero");
 
-        uint256 poolId = nextPoolId++;
+        uint256 poolId = nextPoolId++; //this is the incremented value after 0 which is 1 (initial dataset)
         DataPool storage pool = dataPools[poolId];
         pool.creator = msg.sender;
         pool.ipfsHash = _ipfsHash;
@@ -81,16 +82,30 @@ address[] contributors;
         }
     }
 
-    function purchaseDataAccess(uint256 _poolId, address _buyer) external payable nonReentrant {
+    function purchaseDataAccess(uint256 _poolId) external nonReentrant {
         DataPool storage pool = dataPools[_poolId];
         require(pool.isActive, "Pool is not active");
-        require(_buyer != pool.creator, "Creator cannot purchase their own data");
-        require(token.balanceOf(msg.sender) >= pool.pricePerAccess, "Insufficient token balance to purchase data access");
+        require(msg.sender != pool.creator, "Creator cannot purchase their own data");
 
+        // Convert ETH price to token amount
+        // 1 SYNTK = 0.0001 ETH = 1e14 wei (from TokenMarketplace.TOKEN_PRICE)
+        // So tokens needed = priceInWei / 1e14
+        // uint256 TOKEN_PRICE_WEI = 1e14; // 0.0001 ETH in wei
+        // uint256 tokensNeeded = (pool.pricePerAccess / TOKEN_PRICE_WEI) * 1e18; // Convert to token decimals
 
-        _distributeRoyalties(_poolId, pool.pricePerAccess);
+        uint256 tokensNeeded = pool.pricePerAccess;
 
-        emit DataPurchased(_poolId, msg.sender, msg.value);
+        require(token.balanceOf(msg.sender) >= tokensNeeded, "Insufficient token balance to purchase data access");
+
+        // Transfer tokens from buyer to this contract
+        require(token.transferFrom(msg.sender, address(this), tokensNeeded), "Token transfer failed");
+
+        // Transfer tokens to RoyaltyDistribution contract for distribution
+        require(token.transfer(address(royaltyDistributor), tokensNeeded), "Transfer to royalty distributor failed");
+
+        _distributeRoyalties(_poolId, tokensNeeded);
+
+        emit DataPurchased(_poolId, msg.sender, tokensNeeded);
     }
 
     function _distributeRoyalties(uint256 _poolId, uint256 _amount) internal {

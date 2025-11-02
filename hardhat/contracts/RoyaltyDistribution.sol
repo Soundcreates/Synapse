@@ -55,10 +55,9 @@ contract RoyaltyDistribution is Ownable, ReentrancyGuard {
         uint256 creatorShare = (_totalAmount * 60) / 100;  // 60% to creator
         uint256 contributorShare = (_totalAmount * 40) / 100;  // 40% to contributors
 
-        // Paying creator directly
+        // Transfer tokens to creator directly
         if (creatorShare > 0) {
-            (bool success, ) = payable(creator).call{value: creatorShare}("");
-            require(success, "Creator payment failed");
+            require(token.transfer(creator, creatorShare), "Creator payment failed");
             emit RoyaltyDistributed(_poolId, creator, creatorShare);
         }
 
@@ -80,8 +79,8 @@ contract RoyaltyDistribution is Ownable, ReentrancyGuard {
 
         pendingRoyalties[msg.sender] = 0;
         
-        // Mint tokens equivalent to the royalty amount
-        token.mint(msg.sender, amount * 10 ** token.decimals());
+        // Transfer tokens from this contract to the claimer
+        require(token.transfer(msg.sender, amount), "Token transfer failed");
 
         emit RoyaltyClaimed(msg.sender, amount);
     }

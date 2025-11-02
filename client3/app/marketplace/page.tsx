@@ -15,12 +15,6 @@ import { useMkp } from "../context/TokenMarketplaceContext";
 import { useEffect, useState } from "react";
 import { useDataRegistry } from "../context/DataRegistryContext";
 import { useWallet } from "../context/WalletContext";
-import { CREDIT_TO_ETH_RATIO } from "../../utils/pricingMigration";
-
-// Helper function to convert credits to ETH for display
-const creditsToEth = (credits: number) => {
-  return (credits * CREDIT_TO_ETH_RATIO).toFixed(4);
-};
 
 export default function MarketplacePage() {
   const { account: walletAddress } = useWallet();
@@ -133,10 +127,7 @@ export default function MarketplacePage() {
 
       // Step 2: Execute blockchain transaction
       console.log("Executing blockchain transaction...");
-      const purchaseTx = await purchaseDataAccessFromChain(
-        blockchain_pool_id,
-        walletAddress,
-      );
+      const purchaseTx = await purchaseDataAccessFromChain(blockchain_pool_id);
 
       if (!purchaseTx) {
         throw new Error("Blockchain transaction failed");
@@ -329,13 +320,10 @@ export default function MarketplacePage() {
                 </div>
                 <div className="mt-auto flex items-center justify-between">
                   <div className="text-sm">
-                    <span className="font-medium">{pool.price} credits</span>
-                    <span className="text-muted-foreground ml-1">
-                      (~{creditsToEth(pool.price)} ETH)
-                    </span>
+                    <span className="font-medium">{pool.price} SYN tokens</span>
                   </div>
                   <Button
-                    onClick={() => onPurchase(pool.id)}
+                    onClick={() => onPurchase(pool.id, walletAddress || "")}
                     disabled={
                       purchasingIds.has(pool.id) ||
                       pool.blockchain_pool_id === null
