@@ -1,13 +1,15 @@
+# Synapse Ledger
+
 [![wakatime](https://wakatime.com/badge/github/Soundcreates/Synapse.svg)](https://wakatime.com/badge/github/Soundcreates/Synapse)
-
-
 
 **Decentralized Data Marketplace for Ethical AI Training**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Solidity](https://img.shields.io/badge/Solidity-363636?logo=solidity&logoColor=white)](https://soliditylang.org/)
-[![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?logo=postgresql&logoColor=white)](https://postgresql.org/)
 
 ---
 
@@ -49,14 +51,16 @@ To create a transparent, fair, and decentralized data marketplace that empowers 
 
 ## 🛠️ Tech Stack
 
-| Layer               | Technologies                             |
-| ------------------- | ---------------------------------------- |
-| **Frontend**        | React 18, TypeScript, Vite, Tailwind CSS |
-| **Backend**         | Go (Gin/Fiber), PostgreSQL, Redis, JWT   |
-| **Smart Contracts** | Solidity, Hardhat, OpenZeppelin, Polygon |
-| **Storage**         | Pinata, IPFS, CDN                        |
-| **Web3**            | Ethers.js       
-| **Database**        | PostgreSQL with GORM ORM                 |
+| Layer               | Technologies                                   |
+| ------------------- | ---------------------------------------------- |
+| **Frontend**        | Next.js 15, React 19, TypeScript, Tailwind CSS |
+| **Backend**         | Node.js, Express, TypeScript, Drizzle ORM      |
+| **Smart Contracts** | Solidity, Hardhat, OpenZeppelin, Ethereum      |
+| **Storage**         | Pinata, IPFS                                   |
+| **Web3**            | Ethers.js v6                                   |
+| **Database**        | PostgreSQL with Drizzle ORM                    |
+| **UI Components**   | Radix UI, shadcn/ui, Lucide Icons              |
+| **Deployment**      | Docker, Vercel                                 |
 
 ---
 
@@ -65,11 +69,12 @@ To create a transparent, fair, and decentralized data marketplace that empowers 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Frontend      │    │   Backend       │    │ Smart Contracts │
-│   (React)       │◄──►│   (Go)          │◄──►│   (Solidity)    │
+│   (Next.js)     │◄──►│   (Node.js)     │◄──►│   (Solidity)    │
 │                 │    │                 │    │                 │
 │ • Wallet UI     │    │ • REST API      │    │ • DataRegistry  │
-│ • Marketplace   │    │ • Event Listen  │    │ • Royalties     │
-│ • Data Upload   │    │ • IPFS Service  │    │ • Tokens/NFTs   │
+│ • Marketplace   │    │ • Express       │    │ • RoyaltyDist   │
+│ • Data Upload   │    │ • Drizzle ORM   │    │ • SynTK Token   │
+│ • Dashboard     │    │ • IPFS Service  │    │ • Marketplace   │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
@@ -79,7 +84,7 @@ To create a transparent, fair, and decentralized data marketplace that empowers 
                     │   (IPFS/Pinata) │
                     │                 │
                     │ • File Storage  │
-                    │ • CDN           │
+                    │ • PostgreSQL    │
                     │ • Access Control│
                     └─────────────────┘
 ```
@@ -91,9 +96,9 @@ To create a transparent, fair, and decentralized data marketplace that empowers 
 ### Prerequisites
 
 - Node.js 18+
-- Go 1.21+
-- PostgreSQL 13+
+- PostgreSQL 15+
 - MetaMask or compatible Web3 wallet
+- Docker (optional, for database)
 
 ### 📦 Installation
 
@@ -104,21 +109,32 @@ git clone https://github.com/Soundcreates/Synapse.git
 cd Synapse
 ```
 
-#### 2. Backend Setup (Go)
+#### 2. Backend Setup (Node.js/TypeScript)
 
 ```bash
-cd server
-go mod download
+cd backend2
+npm install
 cp .env.example .env
 # Configure your environment variables
-go build -o main ./cmd/server
-./main
+
+# Option 1: Use Docker for PostgreSQL
+docker-compose up -d
+
+# Option 2: Use local PostgreSQL
+# Make sure PostgreSQL is running locally
+
+# Generate and run migrations
+npm run db:generate
+npm run migrate
+
+# Start development server
+npm run dev
 ```
 
-#### 3. Frontend Setup (React/Vite)
+#### 3. Frontend Setup (Next.js)
 
 ```bash
-cd client
+cd client3
 npm install
 cp .env.example .env
 # Configure your environment variables
@@ -143,29 +159,73 @@ Create `.env` files in each directory:
 #### Backend (.env)
 
 ```env
-DATABASE_URL=postgresql://username:password@localhost/synapse
-REDIS_URL=redis://localhost:6379
-JWT_SECRET=your-jwt-secret
-PINATA_API_KEY=your-pinata-key
-PINATA_SECRET_KEY=your-pinata-secret
-POLYGON_RPC_URL=https://polygon-mumbai.g.alchemy.com/v2/your-key
+# Database Configuration
+DATABASE_URL=postgresql://postgres:synapse@localhost:5432/SynapseDB
+
+# Pinata IPFS Configuration
+PINATA_API_KEY=your-pinata-api-key
+PINATA_SECRET_API_KEY=your-pinata-secret-key
+
+# Port Configuration
+PORT=5000
+
+# Blockchain Configuration
+ETHEREUM_RPC_URL=https://sepolia.infura.io/v3/your-key
 ```
 
 #### Frontend (.env)
 
 ```env
-VITE_API_BASE_URL=http://localhost:8080
-VITE_CONTRACT_ADDRESS=0x...
-VITE_PINATA_GATEWAY=https://gateway.pinata.cloud
+# API Configuration
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+
+# Smart Contract Addresses
+NEXT_PUBLIC_DATA_REGISTRY_ADDRESS=0x...
+NEXT_PUBLIC_TOKEN_MARKETPLACE_ADDRESS=0x...
+NEXT_PUBLIC_SYNTK_TOKEN_ADDRESS=0x...
+NEXT_PUBLIC_ROYALTY_DISTRIBUTION_ADDRESS=0x...
+
+# Pinata Configuration
+NEXT_PUBLIC_PINATA_GATEWAY=https://gateway.pinata.cloud
+
+# Network Configuration
+NEXT_PUBLIC_CHAIN_ID=11155111
+NEXT_PUBLIC_NETWORK_NAME=sepolia
 ```
 
 #### Smart Contracts (.env)
 
 ```env
 PRIVATE_KEY=your-private-key
-MUMBAI_RPC_URL=https://polygon-mumbai.g.alchemy.com/v2/your-key
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/your-key
 ETHERSCAN_API_KEY=your-etherscan-key
 ```
+
+### 🐳 Docker Support
+
+For easy development setup, you can use Docker for the PostgreSQL database:
+
+```bash
+cd backend2
+docker-compose up -d
+```
+
+This will start a PostgreSQL container with the default configuration.
+
+### 🚀 Development Workflow
+
+1. **Start the database**: `cd backend2 && docker-compose up -d`
+2. **Run migrations**: `npm run migrate`
+3. **Start backend**: `npm run dev` (runs on port 5000)
+4. **Start frontend**: `cd ../client3 && npm run dev` (runs on port 3000)
+5. **Deploy contracts**: `cd ../hardhat && npx hardhat run scripts/deploy.ts --network sepolia`
+
+### 🔗 Local Development URLs
+
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:5000
+- **Database Studio**: `npm run db:studio` (Drizzle Studio)
+- **PostgreSQL**: localhost:5432
 
 ---
 
@@ -173,24 +233,28 @@ ETHERSCAN_API_KEY=your-etherscan-key
 
 ### Smart Contracts
 
-- **DataRegistry.sol** - Core marketplace functionality
-- **RoyaltyDistributor.sol** - Automated royalty payment management
-- **SynapseToken.sol** - ERC-20 token for staking and governance
-- **DataNFT.sol** - ERC-721 tokens for data certificates
+- **DataRegistry.sol** - Core marketplace functionality for dataset registration
+- **RoyaltyDistribution.sol** - Automated royalty payment management
+- **SynTK.sol** - ERC-20 token for platform transactions and governance
+- **TokenMarketplace.sol** - Marketplace for trading data access tokens
 
 ### Backend Services
 
-- **API Routes** - RESTful endpoints for all platform operations
-- **Event Listener** - Smart contract event monitoring
-- **IPFS Service** - File upload and retrieval management
-- **Authentication** - JWT-based user authentication
+- **Express API** - RESTful endpoints for all platform operations
+- **Drizzle ORM** - Type-safe database operations with PostgreSQL
+- **Pinata Service** - IPFS file upload and retrieval management
+- **Data Controllers** - Dataset management and validation
+- **Multer Middleware** - File upload handling and processing
 
 ### Frontend Features
 
-- **Wallet Integration** - Seamless Web3 wallet connection
+- **Next.js 15** - Modern React framework with App Router
+- **Wallet Integration** - Seamless Web3 wallet connection with MetaMask
 - **Data Upload** - Intuitive file upload with progress tracking
 - **Marketplace** - Advanced search and filtering capabilities
 - **Dashboard** - Real-time analytics and earnings tracking
+- **Responsive Design** - Mobile-first design with Tailwind CSS
+- **Component Library** - Radix UI components with shadcn/ui styling
 
 ---
 
@@ -207,24 +271,24 @@ npx hardhat coverage
 ### Backend
 
 ```bash
-cd server
-go test ./...
-go test -coverprofile=coverage.out ./...
+cd backend2
+npm test
+npm run build
 ```
 
 ### Frontend
 
 ```bash
-cd client
-npm run test
-npm run test:e2e
+cd client3
+npm run lint
+npm run build
 ```
 
 ### Test Coverage Goals
 
 - Smart Contracts: >95% coverage
-- Backend: >90% coverage
-- Frontend: >85% coverage
+- Backend: >85% coverage
+- Frontend: >80% coverage
 
 ---
 
@@ -232,37 +296,42 @@ npm run test:e2e
 
 ### Production Deployment
 
-#### Backend (Railway)
+#### Backend (Railway/Docker)
 
 ```bash
-# Deploy to Railway
-railway login
-railway link
-railway up
+# Build the application
+cd backend2
+npm run build
+
+# Deploy using Docker
+docker build -t synapse-backend .
+docker run -p 5000:5000 synapse-backend
 ```
 
 #### Frontend (Vercel)
 
 ```bash
 # Deploy to Vercel
-vercel login
+cd client3
+npm run build
 vercel --prod
 ```
 
-#### Smart Contracts (Polygon)
+#### Smart Contracts (Sepolia/Ethereum)
 
 ```bash
-npx hardhat run scripts/deploy.js --network polygon
-npx hardhat verify --network polygon <contract-address>
+cd hardhat
+npx hardhat run scripts/deploy.ts --network sepolia
+npx hardhat verify --network sepolia <contract-address>
 ```
 
 ### Infrastructure
 
-- **Backend**: Railway (Docker containers)
-- **Frontend**: Vercel (Static site)
-- **Database**: PostgreSQL (Railway/AWS RDS)
-- **Storage**: Pinata IPFS + CDN
-- **Blockchain**: Polygon Mainnet / Mumbai Testnet
+- **Backend**: Docker containers (Railway, AWS, or self-hosted)
+- **Frontend**: Vercel (Static site generation)
+- **Database**: PostgreSQL (Docker, Railway, or AWS RDS)
+- **Storage**: Pinata IPFS for decentralized file storage
+- **Blockchain**: Ethereum Sepolia Testnet / Ethereum Mainnet
 
 ---
 
@@ -271,9 +340,16 @@ npx hardhat verify --network polygon <contract-address>
 ### Health Monitoring
 
 - **Backend**: Health endpoints at `/health`
-- **Database**: Connection monitoring
+- **Database**: PostgreSQL connection monitoring
 - **Smart Contracts**: Event monitoring and gas tracking
-- **IPFS**: File availability checks
+- **IPFS**: File availability checks via Pinata
+
+### Performance Metrics
+
+- API response times and throughput
+- Database query performance
+- IPFS upload/download speeds
+- Smart contract gas optimization
 
 ### Analytics Dashboards
 
@@ -284,35 +360,132 @@ npx hardhat verify --network polygon <contract-address>
 
 ---
 
+## 📂 Project Structure
+
+```
+Synapse/
+├── backend2/                 # Node.js/Express backend
+│   ├── config/              # Database configuration
+│   ├── controller/          # API controllers
+│   ├── middleware/          # Express middleware
+│   ├── migrations/          # Database migrations
+│   ├── models/              # Drizzle ORM models
+│   ├── routes/              # API routes
+│   ├── service/             # Business logic services
+│   ├── docker-compose.yml   # PostgreSQL container
+│   └── main.ts              # Application entry point
+│
+├── client3/                 # Next.js frontend
+│   ├── app/                 # Next.js App Router pages
+│   ├── components/          # React components
+│   ├── contractData/        # Smart contract ABIs
+│   ├── hooks/               # Custom React hooks
+│   ├── lib/                 # Utility functions
+│   ├── public/              # Static assets
+│   └── utils/               # Helper utilities
+│
+├── hardhat/                 # Smart contracts
+│   ├── contracts/           # Solidity contracts
+│   ├── scripts/             # Deployment scripts
+│   ├── test/                # Contract tests
+│   └── typechain-types/     # Generated TypeScript types
+│
+└── docs/                    # Documentation files
+```
+
+---
+
 ## 🗺️ Roadmap
 
-### Phase 1 - Foundation ✅
+### Phase 1 - Core Platform ✅
 
-- [x] Basic marketplace functionality
-- [x] Smart contract deployment
-- [x] IPFS integration
-- [x] User authentication
+- [x] Smart contract development (DataRegistry, TokenMarketplace, SynTK, RoyaltyDistribution)
+- [x] Backend API with Express and TypeScript
+- [x] PostgreSQL database with Drizzle ORM
+- [x] IPFS integration with Pinata
+- [x] Next.js frontend with Web3 integration
 
-### Phase 2 - Enhancement 🔄
+### Phase 2 - Enhanced Features �
 
-- [ ] Advanced privacy features (ZK proofs)
-- [ ] Multi-chain support (Arbitrum, Optimism)
-- [ ] Enhanced analytics dashboard
-- [ ] Mobile application
+- [ ] Advanced search and filtering in marketplace
+- [ ] User authentication and profiles
+- [ ] Dataset quality scoring system
+- [ ] Royalty distribution automation
+- [ ] Mobile-responsive design improvements
 
-### Phase 3 - Governance 📋
+### Phase 3 - Community & Governance 📋
 
-- [ ] DAO implementation
-- [ ] Community governance features
-- [ ] Research grant programs
-- [ ] Advanced compliance tools
+- [ ] DAO governance implementation
+- [ ] Community-driven quality assessment
+- [ ] Staking and reward mechanisms
+- [ ] Advanced privacy features
 
-### Phase 4 - Enterprise 🏢
+### Phase 4 - Scale & Enterprise 🏢
 
+- [ ] Multi-chain support (Polygon, Arbitrum)
 - [ ] Enterprise API packages
-- [ ] Custom data processing pipelines
-- [ ] Regulatory compliance automation
-- [ ] Cross-chain bridge development
+- [ ] Advanced analytics dashboard
+- [ ] Regulatory compliance tools
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### Database Connection Issues
+
+```bash
+# Check if PostgreSQL is running
+docker ps
+
+# Restart the database container
+cd backend2
+docker-compose down
+docker-compose up -d
+
+# Check database logs
+docker-compose logs postgres
+```
+
+#### Migration Issues
+
+```bash
+# Reset migrations (development only)
+npm run clear-db
+npm run db:generate
+npm run migrate
+```
+
+#### Frontend Build Issues
+
+```bash
+# Clear Next.js cache
+cd client3
+rm -rf .next
+npm run build
+```
+
+#### Smart Contract Deployment Issues
+
+```bash
+# Check network configuration
+cd hardhat
+npx hardhat verify --list-networks
+
+# Check gas prices and account balance
+npx hardhat balance --account <your-address>
+```
+
+### Environment Variables Checklist
+
+Make sure you have configured:
+
+- ✅ Database connection string
+- ✅ Pinata API keys
+- ✅ Smart contract addresses
+- ✅ RPC endpoints
+- ✅ Private keys (for deployment)
 
 ---
 
@@ -345,18 +518,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Links
 
-- **Website**: [synapse-ledger.com](https://synapse-ledger.com)
-- **Documentation**: [docs.synapse-ledger.com](https://docs.synapse-ledger.com)
-- **Discord**: [Join our community](https://discord.gg/synapse-ledger)
-- **Twitter**: [@SynapseLedger](https://twitter.com/SynapseLedger)
+- **Repository**: [GitHub - Synapse](https://github.com/Soundcreates/Synapse)
+- **Issues**: [Report bugs and feature requests](https://github.com/Soundcreates/Synapse/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Soundcreates/Synapse/discussions)
+- **Releases**: [Latest releases](https://github.com/Soundcreates/Synapse/releases)
 
 ---
 
 ## 📞 Support
 
-- **Email**: support@synapse-ledger.com
-- **Discord**: [Technical Support Channel](https://discord.gg/synapse-ledger)
 - **GitHub Issues**: [Report bugs and feature requests](https://github.com/Soundcreates/Synapse/issues)
+- **GitHub Discussions**: [Technical discussions and questions](https://github.com/Soundcreates/Synapse/discussions)
+- **Email**: Contact the development team through GitHub
 
 ---
 
