@@ -15,6 +15,7 @@ import { useMkp } from "../context/TokenMarketplaceContext";
 import { useEffect, useState } from "react";
 import { useDataRegistry } from "../context/DataRegistryContext";
 import { useWallet } from "../context/WalletContext";
+import getBaseWebpackConfig from "next/dist/build/webpack-config";
 
 export default function MarketplacePage() {
   const { account: walletAddress } = useWallet();
@@ -44,8 +45,6 @@ export default function MarketplacePage() {
     };
 
     fetcher();
-
-
   }, []); // Remove dataSets from dependencies to prevent infinite loop
 
   const { toast } = useToast();
@@ -275,81 +274,93 @@ export default function MarketplacePage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <div className="mb-6 flex items-end justify-between animate-fade-up">
-        <h1 className="text-3xl font-semibold">Marketplace</h1>
-      </div>
+    <>
+      <div className="mx-auto max-w-6xl px-4 py-10">
+        <div className="mb-6 flex items-end justify-between animate-fade-up">
+          <h1 className="text-3xl font-semibold">Marketplace</h1>
+        </div>
 
-      {isLoading ? (
-        <p className="text-muted-foreground animate-fade">Loading datasets…</p>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {(dataSets ?? []).map((pool: DataPool, i) => (
-            <Card
-              key={pool.id}
-              className="flex flex-col animate-fade-up"
-              style={{ animationDelay: `${100 + i * 80}ms` }}
-            >
-              <CardContent className="flex flex-1 flex-col gap-4 p-6">
-                <img
-                  src="/tabular-data-preview.jpg"
-                  alt={`${pool.name} preview`}
-                  className="w-full rounded-md"
-                />
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-medium">{pool.name}</h3>
-                    {pool.blockchain_pool_id === null && (
-                      <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
-                        Pool Missing
+        {isLoading ? (
+          <p className="text-muted-foreground animate-fade">
+            Loading datasets…
+          </p>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {(dataSets ?? []).map((pool: DataPool, i) => (
+              <Card
+                key={pool.id}
+                className="flex flex-col animate-fade-up"
+                style={{ animationDelay: `${100 + i * 80}ms` }}
+              >
+                <CardContent className="flex flex-1 flex-col gap-4 p-6">
+                  <img
+                    src="/tabular-data-preview.jpg"
+                    alt={`${pool.name} preview`}
+                    className="w-full rounded-md"
+                  />
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-medium">{pool.name}</h3>
+                      {pool.blockchain_pool_id === null && (
+                        <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
+                          Pool Missing
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {pool.description ?? "No description provided."}
+                    </p>
+                    <p className="text-sm">
+                      Owner:{" "}
+                      <span className="text-muted-foreground">
+                        {pool.owner_address}
                       </span>
+                    </p>
+                    {pool.blockchain_pool_id !== null && (
+                      <p className="text-xs text-muted-foreground">
+                        Pool ID: {pool.blockchain_pool_id}
+                      </p>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {pool.description ?? "No description provided."}
-                  </p>
-                  <p className="text-sm">
-                    Owner:{" "}
-                    <span className="text-muted-foreground">
-                      {pool.owner_address}
-                    </span>
-                  </p>
-                  {pool.blockchain_pool_id !== null && (
-                    <p className="text-xs text-muted-foreground">
-                      Pool ID: {pool.blockchain_pool_id}
-                    </p>
-                  )}
-                </div>
-                <div className="mt-auto flex items-center justify-between">
-                  <div className="text-sm">
-                    <span className="font-medium">{pool.price} SYN tokens</span>
+                  <div className="mt-auto flex items-center justify-between">
+                    <div className="text-sm">
+                      <span className="font-medium">
+                        {pool.price} SYN tokens
+                      </span>
+                    </div>
+                    <Button
+                      onClick={() => onPurchase(pool.id, walletAddress || "")}
+                      disabled={
+                        purchasingIds.has(pool.id) ||
+                        pool.blockchain_pool_id === null
+                      }
+                      variant={
+                        pool.blockchain_pool_id === null
+                          ? "secondary"
+                          : "default"
+                      }
+                    >
+                      {purchasingIds.has(pool.id)
+                        ? "Purchasing..."
+                        : pool.blockchain_pool_id === null
+                          ? "Unavailable"
+                          : pool.purchasers?.includes(walletAddress)
+                            ? "Purchased"
+                            : "Purchase"}
+                    </Button>
+                    <Button
+                      className="bg-black border-2 border-white text-white hover:bg-white hover:border-black hover:text-black transition-all duration-300 cursor-pointer"
+                      onClick={}
+                    >
+                      Contribute
+                    </Button>
                   </div>
-                  <Button
-                    onClick={() => onPurchase(pool.id, walletAddress || "")}
-                    disabled={
-                      purchasingIds.has(pool.id) ||
-                      pool.blockchain_pool_id === null
-                    }
-                    variant={
-                      pool.blockchain_pool_id === null ? "secondary" : "default"
-                    }
-                  >
-                    {purchasingIds.has(pool.id)
-                      ? "Purchasing..."
-                      : pool.blockchain_pool_id === null
-                        ? "Unavailable" :
-
-                        pool.purchasers?.includes(walletAddress) ? "Purchased"
-                          : "Purchase"
-                    }
-
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

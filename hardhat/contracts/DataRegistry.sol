@@ -26,6 +26,7 @@ string metadataHash;
 uint256 pricePerAccess;
 uint256 totalContributors;
 bool isActive;
+
 mapping(address => uint256) contributorShares;
 address[] contributors;
 }
@@ -62,6 +63,7 @@ address[] contributors;
         pool.metadataHash = _metaDataHash;
         pool.pricePerAccess = _pricePerAccess; // Fixed: missing assignment
         pool.isActive = true;
+
 
         creatorPools[msg.sender].push(poolId);
 
