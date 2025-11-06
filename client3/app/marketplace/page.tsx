@@ -44,6 +44,8 @@ export default function MarketplacePage() {
     };
 
     fetcher();
+
+
   }, []); // Remove dataSets from dependencies to prevent infinite loop
 
   const { toast } = useToast();
@@ -335,8 +337,12 @@ export default function MarketplacePage() {
                     {purchasingIds.has(pool.id)
                       ? "Purchasing..."
                       : pool.blockchain_pool_id === null
-                        ? "Unavailable"
-                        : "Purchase"}
+                        ? "Unavailable" :
+
+                        pool.purchasers?.includes(walletAddress) ? "Purchased"
+                          : "Purchase"
+                    }
+
                   </Button>
                 </div>
               </CardContent>
