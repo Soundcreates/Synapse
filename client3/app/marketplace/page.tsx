@@ -15,10 +15,12 @@ import { useMkp } from "../context/TokenMarketplaceContext";
 import { useEffect, useState } from "react";
 import { useDataRegistry } from "../context/DataRegistryContext";
 import { useWallet } from "../context/WalletContext";
+import { useRouter } from "next/navigation";
 import getBaseWebpackConfig from "next/dist/build/webpack-config";
 
 export default function MarketplacePage() {
   const { account: walletAddress } = useWallet();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState<Boolean>(false);
   const [dataSets, setDataSets] = useState<DataPool[]>([]);
   const [purchasingIds, setPurchasingIds] = useState<Set<number>>(new Set());
@@ -328,32 +330,77 @@ export default function MarketplacePage() {
                         {pool.price} SYN tokens
                       </span>
                     </div>
-                    <Button
-                      onClick={() => onPurchase(pool.id, walletAddress || "")}
-                      disabled={
-                        purchasingIds.has(pool.id) ||
-                        pool.blockchain_pool_id === null
-                      }
-                      variant={
-                        pool.blockchain_pool_id === null
-                          ? "secondary"
-                          : "default"
-                      }
-                    >
-                      {purchasingIds.has(pool.id)
-                        ? "Purchasing..."
-                        : pool.blockchain_pool_id === null
-                          ? "Unavailable"
-                          : pool.purchasers?.includes(walletAddress)
-                            ? "Purchased"
-                            : "Purchase"}
-                    </Button>
-                    <Button
-                      className="bg-black border-2 border-white text-white hover:bg-white hover:border-black hover:text-black transition-all duration-300 cursor-pointer"
-                      onClick={}
-                    >
-                      Contribute
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => onPurchase(pool.id, walletAddress || "")}
+                        disabled={
+                          purchasingIds.has(pool.id) ||
+                          pool.blockchain_pool_id === null
+                        }
+                        variant={
+                          pool.blockchain_pool_id === null
+                            ? "secondary"
+                            : "default"
+                        }
+                      >
+                        {purchasingIds.has(pool.id)
+                          ? "Purchasing..."
+                          : pool.blockchain_pool_id === null
+                            ? "Unavailable"
+                            : pool.purchasers?.includes(walletAddress)
+                              ? "Purchased"
+                              : "Purchase"}
+                      </Button>
+
+                      {/* Show Logs button for owned datasets */}
+                      {walletAddress && pool.owner_address.toLowerCase() === walletAddress.toLowerCase() ? (
+                        <Button
+                          onClick={() => {
+                            if (!pool.blockchain_pool_id) {
+                              toast({
+                                title: "Pool Unavailable",
+                                description: "This dataset pool is not available for management.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            router.push(`/dataset/manage/${pool.blockchain_pool_id}`);
+                          }}
+                          disabled={pool.blockchain_pool_id === null}
+                          variant="secondary"
+                          className="bg-blue-500 text-white hover:bg-blue-600"
+                        >
+                          Logs
+                        </Button>
+                      ) : (
+                        <Button
+                          className="bg-black border-2 border-white text-white hover:bg-white hover:border-black hover:text-black transition-all duration-300 cursor-pointer"
+                          onClick={() => {
+                            if (!walletAddress) {
+                              toast({
+                                title: "Wallet Not Connected",
+                                description: "Please connect your wallet to contribute.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            if (!pool.blockchain_pool_id) {
+                              toast({
+                                title: "Pool Unavailable",
+                                description: "This dataset pool is not available for contribution.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            router.push(`/contribute/${pool.blockchain_pool_id}`);
+                          }}
+                          disabled={pool.blockchain_pool_id === null}
+                          variant="outline"
+                        >
+                          Contribute
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

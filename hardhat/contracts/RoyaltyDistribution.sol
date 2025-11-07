@@ -46,6 +46,7 @@ contract RoyaltyDistribution is Ownable, ReentrancyGuard {
         // Checks
         require(address(dataRegistry) != address(0), "Data registry hasn't been set yet");
         require(_totalAmount > 0, "Amount must be greater than zero");
+        require(token.balanceOf(address(this)) >= _totalAmount, "Insufficient tokens for distribution");
 
         // Getting pool data
         (address creator, , , , uint256 totalContributors, bool isActive) = dataRegistry.getDataPool(_poolId);

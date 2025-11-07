@@ -40,6 +40,31 @@ type DataRegistryContextType = {
   ) => Promise<boolean>;
   purchaseDataAccessFromChain: (poolId: number | BigInt) => Promise<any>;
 
+  // Contributor functions
+  contributorStake: (
+    stakeAmount: string,
+    poolId: number,
+  ) => Promise<boolean>;
+  acceptStake: (
+    poolId: number,
+    contributor: string,
+  ) => Promise<boolean>;
+  rejectStake: (
+    poolId: number,
+    contributor: string,
+  ) => Promise<boolean>;
+  withdrawStake: (
+    poolId: number,
+  ) => Promise<boolean>;
+  getPendingStake: (
+    poolId: number,
+    contributor: string,
+  ) => Promise<bigint | null>;
+  getContributorStake: (
+    poolId: number,
+    contributor: string,
+  ) => Promise<bigint | null>;
+
   // View functions
   getDataPool: (poolId: number) => Promise<DataPool | null>;
   getContributorShare: (
@@ -52,6 +77,19 @@ type DataRegistryContextType = {
   getRoyaltyDistributor: () => Promise<string | null>;
   getOwner: () => Promise<string | null>;
   getPaused: () => Promise<boolean | null>;
+
+  // Pool management functions
+  getUserOwnedPools: (userAddress: string) => Promise<number[] | null>;
+  getAllPendingStakesForUserPools: (userAddress: string) => Promise<{
+    poolId: number;
+    contributor: string;
+    stakeAmount: string;
+    poolName: string;
+  }[] | null>;
+
+  // Royalty functions
+  claimRoyalties: () => Promise<boolean>;
+  getPendingRoyalties: (address: string) => Promise<bigint | null>;
 
   // Contract state
   contract: ethers.Contract | null;
@@ -513,11 +551,478 @@ export const DataRegistryContextProvider = ({
     }
   };
 
+  // Contributor stake function
+  const contributorStake = async (
+    stakeAmount: string,
+    poolId: number,
+  ): Promise<boolean> => {
+    if (!contract.contractInstance) {
+      toast({
+        title: "Contract Not Initialized",
+        description: "Please wait for the contract to initialize.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      // Convert stake amount to wei (18 decimals)
+      const stakeAmountInWei = ethers.parseUnits(stakeAmount, 18);
+
+      // Get SynTK contract for approval
+      const SynTK = await import("../../contractData/SynTK.json");
+      const eth = (window as any).ethereum;
+      const provider = new ethers.BrowserProvider(eth);
+      const signer = await provider.getSigner();
+      const userAddress = await signer.getAddress();
+
+      const tokenContract = new ethers.Contract(
+        SynTK.address,
+        JSON.parse(SynTK.abi),
+        signer,
+      );
+
+      // First, let's check if the pool exists and is active
+      const poolData = await contract.contractInstance.getDataPool(poolId);
+      if (!poolData || !poolData[5]) { // isActive is index 5
+        toast({
+          title: "Invalid Pool",
+          description: "This dataset pool does not exist or is not active.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Check if user already has a pending stake
+      const existingPendingStake = await contract.contractInstance.getPendingStake(poolId, userAddress);
+      if (existingPendingStake && existingPendingStake > 0n) {
+        toast({
+          title: "Stake Already Pending",
+          description: "You already have a pending stake for this dataset. Please wait for creator approval.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Check balance
+      const userBalanceBN = await tokenContract.balanceOf(userAddress);
+      const userBalance = BigInt(userBalanceBN.toString());
+      const stakeAmountBN = BigInt(stakeAmountInWei.toString());
+
+      console.log("User balance:", userBalance.toString());
+      console.log("Stake amount:", stakeAmountBN.toString());
+
+      if (userBalance < stakeAmountBN) {
+        toast({
+          title: "Insufficient Balance",
+          description: `You need ${ethers.formatUnits(stakeAmountInWei, 18)} SYNTK tokens but only have ${ethers.formatUnits(userBalance, 18)} SYNTK.`,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Check current allowance
+      const currentAllowanceBN = await tokenContract.allowance(userAddress, contract.address);
+      const currentAllowance = BigInt(currentAllowanceBN.toString());
+
+      console.log("Current allowance:", currentAllowance.toString());
+      console.log("Required allowance:", stakeAmountBN.toString());
+
+      // Approve if needed (always approve exact amount for security)
+      if (currentAllowance < stakeAmountBN) {
+        toast({
+          title: "Approving Tokens",
+          description: "Approving tokens for staking...",
+        });
+
+        const approveTx = await tokenContract.approve(contract.address, stakeAmountInWei);
+        console.log("Approve transaction:", approveTx.hash);
+        await approveTx.wait();
+
+        toast({
+          title: "Tokens Approved",
+          description: "Proceeding with stake...",
+        });
+
+        // Verify approval succeeded
+        const newAllowance = await tokenContract.allowance(userAddress, contract.address);
+        console.log("New allowance after approval:", newAllowance.toString());
+      }
+
+      // Now call contributorStake with signer-connected contract
+      const signedContract = contract.contractInstance.connect(signer);
+      const tx = await signedContract.contributorStake(stakeAmountInWei, poolId);
+
+      toast({
+        title: "Transaction Submitted",
+        description: "Staking tokens... Please wait for confirmation.",
+      });
+
+      console.log("Stake transaction:", tx.hash);
+      await tx.wait();
+
+      toast({
+        title: "Stake Submitted!",
+        description: `Successfully staked ${stakeAmount} SYNTK tokens. Awaiting creator approval.`,
+      });
+
+      return true;
+    } catch (err: any) {
+      console.error("Error staking tokens:", err);
+
+      // Enhanced error handling for staking
+      let errorMessage = "An error occurred while staking tokens.";
+
+      if (err.message && err.message.includes("execution reverted")) {
+        if (err.data && typeof err.data === "string") {
+          // Try to decode the custom error
+          if (err.data.includes("fb8f41b2")) {
+            errorMessage = "Token transfer failed. Please check your token balance and allowances.";
+          } else {
+            errorMessage = "Smart contract execution failed. Please check your stake amount and try again.";
+          }
+        } else {
+          errorMessage = "Transaction was rejected by the smart contract.";
+        }
+      } else if (err.message && err.message.includes("insufficient funds")) {
+        errorMessage = "Insufficient ETH for gas fees. Please add more ETH to your wallet.";
+      } else if (err.code === "ACTION_REJECTED") {
+        errorMessage = "Transaction was rejected by user.";
+      } else if (err.message && err.message.includes("Pool does not exist")) {
+        errorMessage = "This dataset pool does not exist.";
+      } else if (err.message && err.message.includes("Pool is not active")) {
+        errorMessage = "This dataset pool is not currently active.";
+      } else if (err.message && err.message.includes("Stake already pending")) {
+        errorMessage = "You already have a pending stake for this dataset.";
+      }
+
+      toast({
+        title: "Failed to Stake",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  // Accept stake function (for pool creators)
+  const acceptStake = async (
+    poolId: number,
+    contributor: string,
+  ): Promise<boolean> => {
+    if (!contract.contractInstance) {
+      toast({
+        title: "Contract Not Initialized",
+        description: "Please wait for the contract to initialize.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      const tx = await contract.contractInstance.acceptStake(poolId, contributor);
+
+      toast({
+        title: "Transaction Submitted",
+        description: "Accepting stake... Please wait for confirmation.",
+      });
+
+      await tx.wait();
+
+      toast({
+        title: "Stake Accepted!",
+        description: `Successfully accepted stake from ${contributor.slice(0, 6)}...${contributor.slice(-4)}`,
+      });
+
+      return true;
+    } catch (err: any) {
+      console.error("Error accepting stake:", err);
+      toast({
+        title: "Failed to Accept Stake",
+        description:
+          err.reason || err.message || "An error occurred while accepting the stake.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  // Reject stake function (for pool creators)
+  const rejectStake = async (
+    poolId: number,
+    contributor: string,
+  ): Promise<boolean> => {
+    if (!contract.contractInstance) {
+      toast({
+        title: "Contract Not Initialized",
+        description: "Please wait for the contract to initialize.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      const tx = await contract.contractInstance.rejectStake(poolId, contributor);
+
+      toast({
+        title: "Transaction Submitted",
+        description: "Rejecting stake... Please wait for confirmation.",
+      });
+
+      await tx.wait();
+
+      toast({
+        title: "Stake Rejected!",
+        description: `Successfully rejected stake from ${contributor.slice(0, 6)}...${contributor.slice(-4)}. Tokens returned.`,
+      });
+
+      return true;
+    } catch (err: any) {
+      console.error("Error rejecting stake:", err);
+      toast({
+        title: "Failed to Reject Stake",
+        description:
+          err.reason || err.message || "An error occurred while rejecting the stake.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  // Withdraw stake function (for contributors)
+  const withdrawStake = async (
+    poolId: number,
+  ): Promise<boolean> => {
+    if (!contract.contractInstance) {
+      toast({
+        title: "Contract Not Initialized",
+        description: "Please wait for the contract to initialize.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      const tx = await contract.contractInstance.withdrawStake(poolId);
+
+      toast({
+        title: "Transaction Submitted",
+        description: "Withdrawing stake... Please wait for confirmation.",
+      });
+
+      await tx.wait();
+
+      toast({
+        title: "Stake Withdrawn!",
+        description: "Successfully withdrew your stake. Tokens have been returned to your wallet.",
+      });
+
+      return true;
+    } catch (err: any) {
+      console.error("Error withdrawing stake:", err);
+      toast({
+        title: "Failed to Withdraw Stake",
+        description:
+          err.reason || err.message || "An error occurred while withdrawing the stake.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  // Get pending stake
+  const getPendingStake = async (
+    poolId: number,
+    contributor: string,
+  ): Promise<bigint | null> => {
+    if (!contract.contractInstance) return null;
+
+    try {
+      const stake = await contract.contractInstance.getPendingStake(
+        poolId,
+        contributor,
+      );
+      return stake;
+    } catch (err: any) {
+      console.error("Error getting pending stake:", err);
+      return null;
+    }
+  };
+
+  // Get contributor stake
+  const getContributorStake = async (
+    poolId: number,
+    contributor: string,
+  ): Promise<bigint | null> => {
+    if (!contract.contractInstance) return null;
+
+    try {
+      const stake = await contract.contractInstance.getContributorStake(
+        poolId,
+        contributor,
+      );
+      return stake;
+    } catch (err: any) {
+      console.error("Error getting contributor stake:", err);
+      return null;
+    }
+  };
+
+  // Get all pools owned by a user
+  const getUserOwnedPools = async (userAddress: string): Promise<number[] | null> => {
+    if (!contract.contractInstance) return null;
+
+    try {
+      const ownedPools: number[] = [];
+      let index = 0;
+
+      // Keep fetching pools until we get an error (no more pools)
+      while (true) {
+        try {
+          const poolId = await contract.contractInstance.creatorPools(userAddress, index);
+          if (poolId && Number(poolId) > 0) {
+            ownedPools.push(Number(poolId));
+            index++;
+          } else {
+            break;
+          }
+        } catch {
+          break; // No more pools
+        }
+      }
+
+      return ownedPools;
+    } catch (err: any) {
+      console.error("Error getting user owned pools:", err);
+      return null;
+    }
+  };
+
+  // Get all pending stakes for user's pools
+  const getAllPendingStakesForUserPools = async (userAddress: string) => {
+    if (!contract.contractInstance) return null;
+
+    try {
+      const userPools = await getUserOwnedPools(userAddress);
+      if (!userPools || userPools.length === 0) return [];
+
+      const pendingStakes: {
+        poolId: number;
+        contributor: string;
+        stakeAmount: string;
+        poolName: string;
+      }[] = [];
+
+      // For each pool owned by the user
+      for (const poolId of userPools) {
+        try {
+          // Get pool data for the name
+          const poolData = await getDataPool(poolId);
+          const poolName = poolData ? `Pool ${poolId}` : `Unknown Pool`;
+
+          // We need to check potential contributors
+          // Since we can't easily iterate through all possible addresses,
+          // this would need to be tracked differently in a real application
+          // For now, we'll return an empty array and handle this in the UI
+          // by showing a message to check the admin panel
+        } catch (err) {
+          console.error(`Error processing pool ${poolId}:`, err);
+        }
+      }
+
+      return pendingStakes;
+    } catch (err: any) {
+      console.error("Error getting pending stakes:", err);
+      return null;
+    }
+  };
+
+  // Claim royalties from RoyaltyDistribution contract
+  const claimRoyalties = async (): Promise<boolean> => {
+    if (!contract.contractInstance) {
+      toast({
+        title: "Contract Not Initialized",
+        description: "Please wait for the contract to initialize.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      const RoyaltyDistribution = await import("../../contractData/RoyaltyDistribution.json");
+      const eth = (window as any).ethereum;
+      const provider = new ethers.BrowserProvider(eth);
+      const signer = await provider.getSigner();
+
+      const royaltyContract = new ethers.Contract(
+        RoyaltyDistribution.address,
+        JSON.parse(RoyaltyDistribution.abi),
+        signer,
+      );
+
+      const tx = await royaltyContract.claimRoyalties();
+
+      toast({
+        title: "Transaction Submitted",
+        description: "Claiming royalties... Please wait for confirmation.",
+      });
+
+      await tx.wait();
+
+      toast({
+        title: "Royalties Claimed!",
+        description: "Successfully claimed your pending royalties.",
+      });
+
+      return true;
+    } catch (err: any) {
+      console.error("Error claiming royalties:", err);
+      toast({
+        title: "Failed to Claim Royalties",
+        description:
+          err.reason || err.message || "An error occurred while claiming royalties.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  // Get pending royalties for an address
+  const getPendingRoyalties = async (address: string): Promise<bigint | null> => {
+    if (!contract.contractInstance) return null;
+
+    try {
+      const RoyaltyDistribution = await import("../../contractData/RoyaltyDistribution.json");
+      const eth = (window as any).ethereum;
+      const provider = new ethers.BrowserProvider(eth);
+
+      const royaltyContract = new ethers.Contract(
+        RoyaltyDistribution.address,
+        JSON.parse(RoyaltyDistribution.abi),
+        provider,
+      );
+
+      const pendingAmount = await royaltyContract.pendingRoyalties(address);
+      return pendingAmount;
+    } catch (err: any) {
+      console.error("Error getting pending royalties:", err);
+      return null;
+    }
+  };
+
   const contextValue: DataRegistryContextType = {
     // Main functions
     createDataPool,
     assignContributors,
     purchaseDataAccessFromChain,
+
+    // Contributor functions
+    contributorStake,
+    acceptStake,
+    rejectStake,
+    withdrawStake,
+    getPendingStake,
+    getContributorStake,
 
     // View functions
     getDataPool,
@@ -528,6 +1033,14 @@ export const DataRegistryContextProvider = ({
     getRoyaltyDistributor,
     getOwner,
     getPaused,
+
+    // Pool management functions
+    getUserOwnedPools,
+    getAllPendingStakesForUserPools,
+
+    // Royalty functions
+    claimRoyalties,
+    getPendingRoyalties,
 
     // Contract state
     contract: contract.contractInstance || null,
