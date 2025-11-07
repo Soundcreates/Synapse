@@ -1,2 +1,5 @@
 backend
 backend/
+test-integration.js
+INTEGRATION_GUIDE.md
+DEPLOYMENMT_CHECKLIST.md
