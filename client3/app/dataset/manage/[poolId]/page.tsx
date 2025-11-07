@@ -359,12 +359,12 @@ export default function DatasetManagePage() {
 
       {/* Tab Navigation */}
       <div className="mb-6 animate-fade-up animation-delay-150">
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+        <div className="flex space-x-1 bg-black p-1 rounded-lg">
           <button
             onClick={() => setActiveTab("overview")}
             className={`px-4 py-2 rounded-md transition-colors ${activeTab === "overview"
               ? "bg-white text-gray-900 shadow"
-              : "text-gray-600 hover:text-gray-900"
+              : "text-white "
               }`}
           >
             <BarChart3 className="inline h-4 w-4 mr-2" />
@@ -374,7 +374,7 @@ export default function DatasetManagePage() {
             onClick={() => setActiveTab("contributors")}
             className={`px-4 py-2 rounded-md transition-colors ${activeTab === "contributors"
               ? "bg-white text-gray-900 shadow"
-              : "text-gray-600 hover:text-gray-900"
+              : "text-white "
               }`}
           >
             <Users className="inline h-4 w-4 mr-2" />
@@ -384,7 +384,7 @@ export default function DatasetManagePage() {
             onClick={() => setActiveTab("earnings")}
             className={`px-4 py-2 rounded-md transition-colors ${activeTab === "earnings"
               ? "bg-white text-gray-900 shadow"
-              : "text-gray-600 hover:text-gray-900"
+              : "text-white "
               }`}
           >
             <Coins className="inline h-4 w-4 mr-2" />
@@ -394,7 +394,7 @@ export default function DatasetManagePage() {
             onClick={() => setActiveTab("settings")}
             className={`px-4 py-2 rounded-md transition-colors ${activeTab === "settings"
               ? "bg-white text-gray-900 shadow"
-              : "text-gray-600 hover:text-gray-900"
+              : "text-white "
               }`}
           >
             <Settings className="inline h-4 w-4 mr-2" />
@@ -525,9 +525,9 @@ export default function DatasetManagePage() {
             </CardHeader>
             <CardContent>
               {/* Manual Check Section */}
-              <div className="mb-6 p-4 border border-blue-200 bg-blue-50 rounded-lg">
-                <h4 className="font-medium mb-3 text-blue-900">Check for Pending Stakes</h4>
-                <p className="text-sm text-blue-700 mb-3">
+              <div className="mb-6 p-4 border border-white bg-black rounded-lg">
+                <h4 className="font-medium mb-3 text-white">Check for Pending Stakes</h4>
+                <p className="text-sm text-gray-600 mb-3">
                   Enter wallet addresses of potential contributors to check if they have pending stakes.
                 </p>
                 <div className="flex gap-2">
@@ -652,9 +652,9 @@ export default function DatasetManagePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg">
+              <div className="flex items-center justify-between p-6 bg-black border-2 border-white rounded-lg">
                 <div>
-                  <div className="text-3xl font-bold text-green-600">
+                  <div className="text-3xl font-bold text-white">
                     {hasPendingRoyalties ? pendingRoyaltiesFormatted : "0"} SYNTK
                   </div>
                   <p className="text-sm text-muted-foreground">
@@ -689,15 +689,15 @@ export default function DatasetManagePage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 border rounded">
+                <div className="grid md:grid-cols-2 gap-4 ">
+                  <div className="p-4 border rounded hover:bg-blue-950 transition-all duration-200">
                     <h4 className="font-medium mb-2">Creator Share</h4>
                     <div className="text-2xl font-bold text-blue-600">60%</div>
                     <p className="text-sm text-muted-foreground">
                       You receive 60% of each purchase as the dataset creator
                     </p>
                   </div>
-                  <div className="p-4 border rounded">
+                  <div className="p-4 border rounded hover:bg-green-950 transition-all duration-200">
                     <h4 className="font-medium mb-2">Contributors Share</h4>
                     <div className="text-2xl font-bold text-green-600">40%</div>
                     <p className="text-sm text-muted-foreground">
@@ -706,7 +706,7 @@ export default function DatasetManagePage() {
                   </div>
                 </div>
 
-                <div className="p-4 bg-gray-50 rounded">
+                <div className="p-4 bg-black border border-gray-800 rounded">
                   <h4 className="font-medium mb-2">Current Price</h4>
                   <div className="text-xl font-bold">
                     {ethers.formatUnits(poolData.pricePerAccess, 18)} SYNTK per purchase
@@ -748,7 +748,7 @@ export default function DatasetManagePage() {
                     </Badge>
                     <Button
                       onClick={handleTogglePoolStatus}
-                      variant="outline"
+                      className="bg-black border-white text-white hover:bg-white hover:text-black hover:border-black transition-all duration-200"
                       disabled={loading}
                     >
                       {poolData.isActive ? "Deactivate" : "Activate"}
@@ -775,19 +775,19 @@ export default function DatasetManagePage() {
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">IPFS Hash</label>
-                  <div className="mt-1 p-2 bg-gray-50 rounded font-mono text-sm break-all">
+                  <div className="mt-1 p-2 bg-black border  rounded font-mono text-sm break-all">
                     {poolData.ipfsHash}
                   </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Metadata Hash</label>
-                  <div className="mt-1 p-2 bg-gray-50 rounded font-mono text-sm break-all">
+                  <div className="mt-1 p-2 bg-black border rounded font-mono text-sm break-all">
                     {poolData.metadataHash}
                   </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Creator Address</label>
-                  <div className="mt-1 p-2 bg-gray-50 rounded font-mono text-sm">
+                  <div className="mt-1 p-2 bg-black border rounded font-mono text-sm">
                     {poolData.creator}
                   </div>
                 </div>

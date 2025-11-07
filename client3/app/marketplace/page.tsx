@@ -342,6 +342,7 @@ export default function MarketplacePage() {
                             ? "secondary"
                             : "default"
                         }
+                        className="cursor-pointer"
                       >
                         {purchasingIds.has(pool.id)
                           ? "Purchasing..."
@@ -367,8 +368,8 @@ export default function MarketplacePage() {
                             router.push(`/dataset/manage/${pool.blockchain_pool_id}`);
                           }}
                           disabled={pool.blockchain_pool_id === null}
-                          variant="secondary"
-                          className="bg-blue-500 text-white hover:bg-blue-600"
+
+                          className="bg-black text-white border-2 border-white hover:bg-white hover:border-black hover:text-black transition-all duration-300 cursor-pointer"
                         >
                           Logs
                         </Button>
@@ -395,7 +396,7 @@ export default function MarketplacePage() {
                             router.push(`/contribute/${pool.blockchain_pool_id}`);
                           }}
                           disabled={pool.blockchain_pool_id === null}
-                          variant="outline"
+
                         >
                           Contribute
                         </Button>
