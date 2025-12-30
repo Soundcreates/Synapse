@@ -5,3 +5,4 @@ node_modules/
 testDatabase.ts
 runMigrations.ts
 clearDatabase.ts
+dist/
