@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { eq, ilike, desc, and, isNotNull } from "drizzle-orm";
-import { db } from "../config/connectDB";
+import db from "../config/connectDB";
 import {
   datasets,
   DataSet,
@@ -137,7 +137,7 @@ export const getDataSetByIdOrOwner = async (
       //tracking and sending the datasets that the ownerAddress has purchased
       const dataSetsPurchasedList = await db.select().from(datasets);
       const dataSetsPurchasedByowner = dataSetsPurchasedList.filter(
-        (dataSet) => {
+        (dataSet: DataSet) => {
           return (
             Array.isArray(dataSet.purchasers) &&
             dataSet.purchasers.includes(ownerAddress)
@@ -280,7 +280,7 @@ export const checkAndFixBlockchainPools = async (
 
       // Just reset datasets with null blockchain_pool_id for now
       const datasetsToFix = allDatasets.filter(
-        (dataset) =>
+        (dataset: DataSet) =>
           dataset.blockchain_pool_id === null ||
           dataset.blockchain_pool_id === undefined,
       );
@@ -291,7 +291,7 @@ export const checkAndFixBlockchainPools = async (
           "Blockchain connection unavailable, found datasets needing pool creation",
         needsPoolCreation: datasetsToFix.length,
         total: allDatasets.length,
-        datasetsNeedingPools: datasetsToFix.map((d) => ({
+        datasetsNeedingPools: datasetsToFix.map((d: DataSet) => ({
           id: d.id,
           name: d.name,
           owner_address: d.owner_address,
