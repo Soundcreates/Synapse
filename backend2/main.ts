@@ -15,7 +15,7 @@ const allowedOrigins = [
   "http://localhost:3001",
   "http://localhost:5173",
   "http://localhost:5000",
-  "https://synapse-dusky.vercel.app/",
+  "https://synapse-dusky.vercel.app",
 ];
 
 app.use(
