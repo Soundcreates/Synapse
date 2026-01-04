@@ -7,7 +7,7 @@
     "start-prod": "node dist/main.js",
     "test": "ts-node testDatabase.ts",
     "start": "nodemon --exec ts-node main.ts",
-    "start-prod": "node dist/main.js",
+    "migrate": "npx drizzle-kit push",
     "dev": "ts-node-dev --esm --respawn --transpileOnly main.ts",
     "clear-db": "ts-node clearDatabase.ts",
     "db:generate": "drizzle-kit generate",
