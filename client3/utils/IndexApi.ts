@@ -97,7 +97,7 @@ export async function fetchDocument(cid: string): Promise<string> {
   console.log("Fetching file from IPFS with CID: ", cid);
 
   try {
-    const response = await fetchData.get(`/pinata/${cid}`);
+    const response = await fetchData.get(`/pinata/fetch/${cid}`);
     if (response.status === 200) {
       console.log("File fetched from IPFS successfully");
       console.log("Fetch response:", response.data);
