@@ -19,9 +19,9 @@ import { TokenMarketPlaceProvider } from "./context/TokenMarketplaceContext"
 
 
 export const metadata: Metadata = {
-  title: "v0 App",
-  description: "Created with v0",
-  generator: "v0.app",
+  title: "Synapse",
+  description: "Monetize and Access Data with Confidence - A data marketplace where you can upload datasets, create pools, and purchase access with a mock wallet.",
+  generator: "Soundcreates",
 }
 
 export default function RootLayout({
